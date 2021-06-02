@@ -50,6 +50,7 @@ int main()
   //下面的是创建子线程
   for (int nthreads = 1; nthreads < kMaxThreads; ++nthreads)
   {
+    //ptr_vector是指针vector，里面存放的是Thread的指针
     boost::ptr_vector<Thread> threads;//释放时，能够销毁存放在vector的对象
     g_vec.clear();
     start = Timestamp::now();
@@ -65,6 +66,8 @@ int main()
     {
       threads[i].join();
     }
+    //看看只有一个线程，用了多少时间
+    //以此类推，看看有两个线程，用了多少时间
     printf("%d thread(s) with lock %f\n", nthreads, timeDifference(Timestamp::now(), start));
   }
 }

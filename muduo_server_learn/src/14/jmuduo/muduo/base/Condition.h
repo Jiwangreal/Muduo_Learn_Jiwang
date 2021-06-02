@@ -20,19 +20,21 @@ class Condition : boost::noncopyable
   explicit Condition(MutexLock& mutex)
     : mutex_(mutex)
   {
-    pthread_cond_init(&pcond_, NULL);
+    pthread_cond_init(&pcond_, NULL);//初始化条件变量
   }
 
   ~Condition()
   {
-    pthread_cond_destroy(&pcond_);
+    pthread_cond_destroy(&pcond_);//销毁条件变量
   }
 
+  //等待函数
   void wait()
   {
     pthread_cond_wait(&pcond_, mutex_.getPthreadMutex());
   }
 
+  //等待一定的时间
   // returns true if time out, false otherwise.
   bool waitForSeconds(int seconds);
 
@@ -47,7 +49,7 @@ class Condition : boost::noncopyable
   }
 
  private:
-  MutexLock& mutex_;
+  MutexLock& mutex_;//与MutexLock配合使用，不负责管理MutexLock他的生存期
   pthread_cond_t pcond_;
 };
 

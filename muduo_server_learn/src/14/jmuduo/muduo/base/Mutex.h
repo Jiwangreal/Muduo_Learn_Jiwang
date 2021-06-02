@@ -31,6 +31,7 @@ class MutexLock : boost::noncopyable
     assert(ret == 0); (void) ret;
   }
 
+  //判断当前线程是否拥有锁
   bool isLockedByThisThread()
   {
     return holder_ == CurrentThread::tid();
@@ -43,19 +44,21 @@ class MutexLock : boost::noncopyable
   }
 
   // internal usage
-
+  //加锁
   void lock()
   {
     pthread_mutex_lock(&mutex_);
     holder_ = CurrentThread::tid();//将当前线程的tid保存至holder_
   }
 
+  //解锁
   void unlock()
   {
     holder_ = 0;
     pthread_mutex_unlock(&mutex_);
   }
 
+  //获取pthread_mutex_t对象
   pthread_mutex_t* getPthreadMutex() /* non-const */
   {
     return &mutex_;
@@ -63,13 +66,41 @@ class MutexLock : boost::noncopyable
 
  private:
 
-  pthread_mutex_t mutex_;
-  pid_t holder_;
+  pthread_mutex_t mutex_;//保存pthread_mutex_t对象
+  pid_t holder_;//当前拥有该锁的线程ID，线程真实tid
 };
 
+/*
+MutexLockGuard类，此类更加常用，使用RAII技法封装
+
+void f()
+{
+	mutex.lock()
+	...
+	if(条件)
+	{
+		return;//这里直接return，如果忘记umutex.unlock，会造成死锁
+	}
+	mutex.unlock;
+}
+
+
+void f()
+{
+	MutexLockGuard lock(mutex);//在构造函数中加锁了
+	...
+	if(条件)
+	{
+		return;//这里直接return，那么lock对象的生命周期就结束了，自动调用析构函数解锁
+	}
+	
+}//这里返回，和上面的return解释一样
+
+*/
 class MutexLockGuard : boost::noncopyable
 {
  public:
+ //构造函数中获取资源并初始化
   explicit MutexLockGuard(MutexLock& mutex)
     : mutex_(mutex)
   {
@@ -83,7 +114,20 @@ class MutexLockGuard : boost::noncopyable
 
  private:
 
-  MutexLock& mutex_;//MutexLockGuard对象生命期结束的时候，mutex_对象的生命期未结束
+  MutexLock& mutex_;//这里的引用说明，MutexLockGuard类并不管理mutex_对象的生存期
+                    //MutexLockGuard对象生命期结束的时候，mutex_对象的生命期未结束
+                    //这俩类是关联关系：MutexLockGuard类使用了mutex_中lock()方法和unlock()方法，不存在整体与局部的关系
+  /*
+  类之间的关系
+（1）关联关系
+MutexLockGuard类使用了mutex类中的lock和unlock方法
+（2）聚合关系
+若存在整体与局部的关系，则是聚合关系
+（3）组合关系
+不仅存在整体与局部的关系，以及还负责对对象的销毁，就是组合关系
+  
+  */
+
 };
 
 }
@@ -91,6 +135,6 @@ class MutexLockGuard : boost::noncopyable
 // Prevent misuse like:
 // MutexLockGuard(mutex_);//不运行构造一个匿名的mutex对象，要不然会报错
 // A tempory object doesn't hold the lock for long!
-#define MutexLockGuard(x) error "Missing guard object name"
+#define MutexLockGuard(x) error "Missing guard object name" //目的为了防止错误的用法，编译会不通过
 
 #endif  // MUDUO_BASE_MUTEX_H

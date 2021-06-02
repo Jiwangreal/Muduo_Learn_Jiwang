@@ -30,6 +30,7 @@ int main(void)
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
 
+	//预备一个空闲的fd
 	int idlefd = open("/dev/null", O_RDONLY | O_CLOEXEC);
 	int listenfd;
 
@@ -88,14 +89,16 @@ int main(void)
 				ERR_EXIT("accept4");
 */
 
-
+			//connfd如果用完了
 			if (connfd == -1)
 			{
-				if (errno == EMFILE)
+				//EMFILE是暂时性的错误，所以这样处理，其他错误，直接关闭掉即可（若是高可用，也不会关闭，也会继续continue）
+				if (errno == EMFILE)//说明fd不够用了
 				{
-					close(idlefd);
-					idlefd = accept(listenfd, NULL, NULL);
-					close(idlefd);
+					close(idlefd);//腾出一个fd
+					idlefd = accept(listenfd, NULL, NULL);//accept一个fd后，fd又用光了
+					close(idlefd);//防止下次出现EMFILE的错误，再次close idlefd，再次open
+					//这样就优雅的断开了与客户端的连接
 					idlefd = open("/dev/null", O_RDONLY | O_CLOEXEC);
 					continue;
 				}

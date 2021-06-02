@@ -67,6 +67,9 @@ int main(void)
 
 	while (1)
 	{
+		//&*pollfds.begin()是一个输入输出参数，可以看成数组或者向量
+		//若有1万个fd，假设只要3个fd产生了事件，也需要遍历整个数组&*pollfds.begin()
+		//此外，每次调用poll的时候，需要将数组中相关的事件拷贝到内核的链表，内核才知道你这次查询关注的是哪些socket，哪些事件
 		nready = poll(&*pollfds.begin(), pollfds.size(), -1);
 		if (nready == -1)
 		{
@@ -118,6 +121,8 @@ int main(void)
 
 		//std::cout<<pollfds.size()<<std::endl;
 		//std::cout<<nready<<std::endl;
+
+		//也需要遍历整个数组&*pollfds.begin()
 		for (PollFdList::iterator it=pollfds.begin()+1;
 			it != pollfds.end() && nready >0; ++it)
 		{

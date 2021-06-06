@@ -9,6 +9,7 @@
 #include <string>
 #include <stdio.h>
 
+//度量时间的类
 class Bench
 {
  public:
@@ -26,6 +27,7 @@ class Bench
     for_each(threads_.begin(), threads_.end(), boost::bind(&muduo::Thread::start, _1));
   }
 
+  //生产产品，将时间添加到队列中
   void run(int times)
   {
     printf("waiting for count down latch\n");
@@ -34,8 +36,8 @@ class Bench
     for (int i = 0; i < times; ++i)
     {
       muduo::Timestamp now(muduo::Timestamp::now());
-      queue_.put(now);
-      usleep(1000);
+      queue_.put(now);//有界队列
+      usleep(1000);//1000微妙，总共usleep：1000微妙*10000=10秒
     }
   }
 
@@ -51,6 +53,7 @@ class Bench
 
  private:
 
+  //消费者线程消费产品
   void threadFunc()
   {
     printf("tid=%d, %s started\n",
@@ -64,16 +67,20 @@ class Bench
     {
       muduo::Timestamp t(queue_.take());
       muduo::Timestamp now(muduo::Timestamp::now());
+      //如果时间合法，就计算时间差
       if (t.valid())
       {
+        //delay的单位是微秒，delay=生产整个产品，到这个产品被消费的时间差
         int delay = static_cast<int>(timeDifference(now, t) * 1000000);
         // printf("tid=%d, latency = %d us\n",
         //        muduo::CurrentThread::tid(), delay);
+        //delays统计某个时间差出现的个数
         ++delays[delay];
       }
-      running = t.valid();
+      running = t.valid();//joinAll()生产一个非法的时间产品跳出循环
     }
 
+  //遍历map容器，统计看下某个时间差出现的个数
     printf("tid=%d, %s stopped\n",
            muduo::CurrentThread::tid(),
            muduo::CurrentThread::name());
@@ -96,6 +103,6 @@ int main(int argc, char* argv[])
   int threads = argc > 1 ? atoi(argv[1]) : 1;
 
   Bench t(threads);
-  t.run(10000);
+  t.run(10000);//这里生产者线程只有1个
   t.joinAll();
 }

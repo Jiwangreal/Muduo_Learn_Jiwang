@@ -13,9 +13,11 @@ target_link_libraries(boundedblockingqueue_test muduo_base)
 add_executable(exception_test Exception_test.cc)
 target_link_libraries(exception_test muduo_base)
 
+##新增
 add_executable(logstream_bench LogStream_bench.cc)
 target_link_libraries(logstream_bench muduo_base)
 
+##新增，BOOSTTEST_LIBRARY看下boost测试框架库是否安装了
 if(BOOSTTEST_LIBRARY)
 add_executable(logstream_test LogStream_test.cc)
 target_link_libraries(logstream_test muduo_base boost_unit_test_framework)

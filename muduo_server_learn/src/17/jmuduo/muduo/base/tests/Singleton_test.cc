@@ -31,12 +31,15 @@ void threadFunc()
          muduo::CurrentThread::tid(),
          &muduo::Singleton<Test>::instance(),
          muduo::Singleton<Test>::instance().name().c_str());
+         //先打印，再更改名称
   muduo::Singleton<Test>::instance().setName("only one, changed");
 }
 
 int main()
 {
+  //muduo::Singleton<Test>::instance()返回Test对象
   muduo::Singleton<Test>::instance().setName("only one");
+  //主线程和子线程应该是共享同一个单例的
   muduo::Thread t1(threadFunc);
   t1.start();
   t1.join();

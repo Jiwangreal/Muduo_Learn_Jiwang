@@ -31,6 +31,7 @@ target_link_libraries(thread_test muduo_base)
 add_executable(threadlocal_test ThreadLocal_test.cc)
 target_link_libraries(threadlocal_test muduo_base)
 
+##ĞÂÔö
 add_executable(threadlocalsingleton_test ThreadLocalSingleton_test.cc)
 target_link_libraries(threadlocalsingleton_test muduo_base)
 

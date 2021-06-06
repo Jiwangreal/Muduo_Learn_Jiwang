@@ -18,7 +18,7 @@ class CountDownLatch : boost::noncopyable
 {
  public:
 
-  explicit CountDownLatch(int count);
+  explicit CountDownLatch(int count);//等待计数器-1
 
   void wait();
 
@@ -27,9 +27,9 @@ class CountDownLatch : boost::noncopyable
   int getCount() const;
 
  private:
-  mutable MutexLock mutex_;
+  mutable MutexLock mutex_;//用mutable修饰的原因需要注意下
   Condition condition_;
-  int count_;
+  int count_;//计数器
 };
 
 }

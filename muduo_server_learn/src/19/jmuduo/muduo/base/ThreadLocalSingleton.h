@@ -18,16 +18,19 @@ class ThreadLocalSingleton : boost::noncopyable
 {
  public:
 
+  //返回单例对象，返回的是对象的引用
   static T& instance()
   {
+    //不需要按照线程安全的方式去实现，因为每个线程都有一个指针
     if (!t_value_)
     {
       t_value_ = new T();
-      deleter_.set(t_value_);
+      deleter_.set(t_value_);//将指针设置进来
     }
     return *t_value_;
   }
 
+  //返回对象的指针
   static T* pointer()
   {
     return t_value_;
@@ -38,11 +41,13 @@ class ThreadLocalSingleton : boost::noncopyable
   static void destructor(void* obj)
   {
     assert(obj == t_value_);
-    typedef char T_must_be_complete_type[sizeof(T) == 0 ? -1 : 1];
+    typedef char T_must_be_complete_type[sizeof(T) == 0 ? -1 : 1];//不完全类型，编译器就会报错
     delete t_value_;
     t_value_ = 0;
   }
 
+  //线程本地存储2：TSD，因为TSD还是用的LinuxC的API接口实现的，所以这里使用了嵌套类
+  //嵌套类，目的仅仅使用用来回调destructor函数
   class Deleter
   {
    public:
@@ -65,8 +70,11 @@ class ThreadLocalSingleton : boost::noncopyable
     pthread_key_t pkey_;
   };
 
-  static __thread T* t_value_;
-  static Deleter deleter_;
+  //线程本地存储机制1：__thread
+  static __thread T* t_value_;//类型是 T*，加上__thread关键字，表示该指针，每一个线程都有一份
+  static Deleter deleter_;//销毁指针所指向的对象，目的是调用destructor()时，指针所指向的对象能够自动被释放，而不要显式的释放
+                          //deleter_对象被销毁时——>调用~Deleter()，同时也会调用&ThreadLocalSingleton::destructor——>
+                          //destructor()函数的调用会销毁t_value_指针
 };
 
 template<typename T>

@@ -15,6 +15,7 @@ class Test
     : latch_(numThreads),
       threads_(numThreads)
   {
+    //创建3个子线程
     for (int i = 0; i < numThreads; ++i)
     {
       char name[32];
@@ -40,7 +41,7 @@ class Test
   void threadFunc()
   {
     sleep(3);
-    latch_.countDown();
+    latch_.countDown();//等三个子线程都运行完毕了，都调用了countDown，计数器的值才=0
     printf("tid=%d, %s started\n",
            CurrentThread::tid(),
            CurrentThread::name());
@@ -60,6 +61,7 @@ int main()
 {
   printf("pid=%d, tid=%d\n", ::getpid(), CurrentThread::tid());
   Test t(3);
+  //主线程wait，等待所有子线程初始化完毕
   t.wait();
   printf("pid=%d, tid=%d %s running ...\n", ::getpid(), CurrentThread::tid(), CurrentThread::name());
   t.joinAll();

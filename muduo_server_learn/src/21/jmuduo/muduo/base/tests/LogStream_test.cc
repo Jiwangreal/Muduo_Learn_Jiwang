@@ -6,16 +6,17 @@
 //#define BOOST_TEST_MODULE LogStreamTest
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-
+#include <boost/test/unit_test.hpp>//boost单元测试框架，需要安装测试框架库：sudo apt-get install libboost-test-dev
+                                    //boost基础库：libboost_dev
 using muduo::string;
 
+//单元测试用力,bool测试
 BOOST_AUTO_TEST_CASE(testLogStreamBooleans)
 {
-  muduo::LogStream os;
-  const muduo::LogStream::Buffer& buf = os.buffer();
+  muduo::LogStream os;//构造一个LogStream对象
+  const muduo::LogStream::Buffer& buf = os.buffer();//构造完毕后，os.buffer()应该是空的
   BOOST_CHECK_EQUAL(buf.asString(), string(""));
-  os << true;
+  os << true;//输出字符串"1"
   BOOST_CHECK_EQUAL(buf.asString(), string("1"));
   os << '\n';
   BOOST_CHECK_EQUAL(buf.asString(), string("1\n"));
@@ -23,6 +24,7 @@ BOOST_AUTO_TEST_CASE(testLogStreamBooleans)
   BOOST_CHECK_EQUAL(buf.asString(), string("1\n0"));
 }
 
+//整型测试
 BOOST_AUTO_TEST_CASE(testLogStreamIntegers)
 {
   muduo::LogStream os;
@@ -34,7 +36,8 @@ BOOST_AUTO_TEST_CASE(testLogStreamIntegers)
   BOOST_CHECK_EQUAL(buf.asString(), string("10"));
   os << -1;
   BOOST_CHECK_EQUAL(buf.asString(), string("10-1"));
-  os.resetBuffer();
+  os.resetBuffer();//缓冲区清空，但不是真正的清空
+                    //eg:当前缓冲区是10-1，将0放进去，就是00-1
 
   os << 0 << " " << 123 << 'x' << 0x64;
   BOOST_CHECK_EQUAL(buf.asString(), string("0 123x100"));
@@ -53,6 +56,7 @@ BOOST_AUTO_TEST_CASE(testLogStreamIntegerLimits)
   BOOST_CHECK_EQUAL(buf.asString(), string("-2147483647-2147483648 2147483647"));
   os.resetBuffer();
 
+  //numeric_limits是STL求极值的方法
   os << std::numeric_limits<int16_t>::min();
   BOOST_CHECK_EQUAL(buf.asString(), string("-32768"));
   os.resetBuffer();

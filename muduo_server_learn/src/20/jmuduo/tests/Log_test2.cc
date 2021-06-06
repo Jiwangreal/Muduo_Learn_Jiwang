@@ -21,6 +21,8 @@ void dummyFlush()
 
 int main()
 {
+	//输出到文件，只需要更改输出函数
+	//e表hi调用exec系列函数的时候，文件指针不会被继承
 	g_file = ::fopen("/tmp/muduo_log", "ae");
 	Logger::setOutput(dummyOutput);
 	Logger::setFlush(dummyFlush);

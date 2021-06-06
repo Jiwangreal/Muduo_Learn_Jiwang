@@ -19,6 +19,7 @@ namespace detail
 const int kSmallBuffer = 4000;
 const int kLargeBuffer = 4000*1000;
 
+// SIZE为非类型参数，而传递的是一个值
 template<int SIZE>
 class FixedBuffer : boost::noncopyable
 {
@@ -36,30 +37,30 @@ class FixedBuffer : boost::noncopyable
 
   void append(const char* /*restrict*/ buf, size_t len)
   {
-    // FIXME: append partially
+    // FIXME: append partially，缓冲区空间不够了，能不能部分添加进去，还没有实现
     if (implicit_cast<size_t>(avail()) > len)
     {
       memcpy(cur_, buf, len);
-      cur_ += len;
+      cur_ += len;//进行偏移
     }
   }
 
-  const char* data() const { return data_; }
-  int length() const { return static_cast<int>(cur_ - data_); }
+  const char* data() const { return data_; }//返回首地址
+  int length() const { return static_cast<int>(cur_ - data_); }//当前缓冲区已经持有的容量
 
   // write to data_ directly
-  char* current() { return cur_; }
-  int avail() const { return static_cast<int>(end() - cur_); }
+  char* current() { return cur_; }//返回指针
+  int avail() const { return static_cast<int>(end() - cur_); }//当前可用的空间
   void add(size_t len) { cur_ += len; }
 
-  void reset() { cur_ = data_; }
-  void bzero() { ::bzero(data_, sizeof data_); }
+  void reset() { cur_ = data_; }//缓冲区重复利用，cur_指向首地址就可以
+  void bzero() { ::bzero(data_, sizeof data_); }//清空缓冲区，相当于memset(date_,0,sizeof(data_))，后者更加通用而已
 
   // for used by GDB
-  const char* debugString();
+  const char* debugString();//增加\0，将当前数据变成字符串
   void setCookie(void (*cookie)()) { cookie_ = cookie; }
   // for used by unit test
-  string asString() const { return string(data_, length()); }
+  string asString() const { return string(data_, length()); }//返回String类
 
  private:
   const char* end() const { return data_ + sizeof data_; }
@@ -67,9 +68,9 @@ class FixedBuffer : boost::noncopyable
   static void cookieStart();
   static void cookieEnd();
 
-  void (*cookie_)();
-  char data_[SIZE];
-  char* cur_;
+  void (*cookie_)();//目前没啥用
+  char data_[SIZE];//data_就是缓冲区，该缓冲区并不是以二进制的方式存放的
+  char* cur_;//当前指针
 };
 
 }
@@ -78,14 +79,17 @@ class LogStream : boost::noncopyable
 {
   typedef LogStream self;
  public:
-  typedef detail::FixedBuffer<detail::kSmallBuffer> Buffer;
+ //kSmallBuffer是一个常量，这是谷歌的编程规范
+  typedef detail::FixedBuffer<detail::kSmallBuffer> Buffer;//实际输出的时候，首先输出到该缓冲区中
 
+  //bool类型存放到缓冲区
   self& operator<<(bool v)
   {
     buffer_.append(v ? "1" : "0", 1);
     return *this;
   }
 
+  //都看成是整数放进去
   self& operator<<(short);
   self& operator<<(unsigned short);
   self& operator<<(int);
@@ -95,6 +99,7 @@ class LogStream : boost::noncopyable
   self& operator<<(long long);
   self& operator<<(unsigned long long);
 
+  //指针的话，转换成16进制的地址存放进去
   self& operator<<(const void*);
 
   self& operator<<(float v)
@@ -120,6 +125,15 @@ class LogStream : boost::noncopyable
     return *this;
   }
 
+  //string是短字符优化的字符串
+  /*
+  这俩string接口一样，内部实现不太一样而已
+  #ifdef MUDUO_STD_STRING
+using std::string;
+#else  // !MUDUO_STD_STRING
+typedef __gnu_cxx::__sso_string string;
+#endif
+  */
   self& operator<<(const string& v)
   {
     buffer_.append(v.c_str(), v.size());
@@ -134,6 +148,7 @@ class LogStream : boost::noncopyable
   }
 #endif
 
+  //StringPiece也可以看成是一个字符串
   self& operator<<(const StringPiece& v)
   {
     buffer_.append(v.data(), v.size());
@@ -150,7 +165,7 @@ class LogStream : boost::noncopyable
   template<typename T>
   void formatInteger(T);
 
-  Buffer buffer_;
+  Buffer buffer_;//最终的目的就是调用插入运算符<<，把数据格式化到缓冲区中
 
   static const int kMaxNumericSize = 32;
 };
@@ -158,8 +173,9 @@ class LogStream : boost::noncopyable
 class Fmt // : boost::noncopyable
 {
  public:
+ //成员模板
   template<typename T>
-  Fmt(const char* fmt, T val);
+  Fmt(const char* fmt, T val);//将val按照fmt格式化到buf_
 
   const char* data() const { return buf_; }
   int length() const { return length_; }

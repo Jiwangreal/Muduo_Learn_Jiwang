@@ -30,7 +30,7 @@ void threadFunc(const char* changeTo)
 {
   printf("tid=%d, %p name=%s\n",
          muduo::CurrentThread::tid(),
-         &muduo::ThreadLocalSingleton<Test>::instance(),
+         &muduo::ThreadLocalSingleton<Test>::instance(),//每个线程里面的Test对象
          muduo::ThreadLocalSingleton<Test>::instance().name().c_str());
   muduo::ThreadLocalSingleton<Test>::instance().setName(changeTo);
   printf("tid=%d, %p name=%s\n",
@@ -44,7 +44,12 @@ void threadFunc(const char* changeTo)
 
 int main()
 {
+  //每个线程都有一个单例对象muduo::ThreadLocalSingleton<Test>::instance()
+  //每个线程都有1个Test对象
+  //比较与src\18\jmuduo\muduo\base\tests\SingletonThreadLocal_test.cc实现方式，这里更好些
   muduo::ThreadLocalSingleton<Test>::instance().setName("main one");
+
+  //子线程
   muduo::Thread t1(boost::bind(threadFunc, "thread1"));
   muduo::Thread t2(boost::bind(threadFunc, "thread2"));
   t1.start();

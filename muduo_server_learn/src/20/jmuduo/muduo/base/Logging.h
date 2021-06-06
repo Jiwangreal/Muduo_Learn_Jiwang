@@ -59,6 +59,7 @@ class Logger
   Logger(SourceFile file, int line, bool toAbort);
   ~Logger();
 
+//stream_对象放在impl_类中，作为其对象成员
   LogStream& stream() { return impl_.stream_; }
 
   static LogLevel logLevel();
@@ -71,6 +72,7 @@ class Logger
 
  private:
 
+//嵌套类
 class Impl
 {
  public:
@@ -80,7 +82,7 @@ class Impl
   void finish();
 
   Timestamp time_;
-  LogStream stream_;
+  LogStream stream_;//内部包含了一个LogStream类对象成员
   LogLevel level_;
   int line_;
   SourceFile basename_;
@@ -97,8 +99,13 @@ inline Logger::LogLevel Logger::logLevel()
   return g_logLevel;
 }
 
+// 既可以输出到标准输出，也可以输出到文件中，当前的logLevel() 是LOG_INFO
+//muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__)相当于构造了一个匿名对象，调用完stream()方法后,返回一个LogStream对象
+//通过LogStream对象调用插入运算符<<输出日志
+//执行完毕这句话之后，该Logger对象就没有存在的价值了，会调用析构函数
 #define LOG_TRACE if (muduo::Logger::logLevel() <= muduo::Logger::TRACE) \
-  muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__).stream()
+  muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__).stream()//if条件满足，才有这行代码
+//muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__).stream()实际放回的是LogStream类对象
 #define LOG_DEBUG if (muduo::Logger::logLevel() <= muduo::Logger::DEBUG) \
   muduo::Logger(__FILE__, __LINE__, muduo::Logger::DEBUG, __func__).stream()
 #define LOG_INFO if (muduo::Logger::logLevel() <= muduo::Logger::INFO) \
@@ -106,6 +113,9 @@ inline Logger::LogLevel Logger::logLevel()
 #define LOG_WARN muduo::Logger(__FILE__, __LINE__, muduo::Logger::WARN).stream()
 #define LOG_ERROR muduo::Logger(__FILE__, __LINE__, muduo::Logger::ERROR).stream()
 #define LOG_FATAL muduo::Logger(__FILE__, __LINE__, muduo::Logger::FATAL).stream()
+
+//false表示不会退出程序，true表示会退出程序
+//Logger(__FILE__, __LINE__, false)构造Logger对象，构造Logger对象，调用stream()函数
 #define LOG_SYSERR muduo::Logger(__FILE__, __LINE__, false).stream()
 #define LOG_SYSFATAL muduo::Logger(__FILE__, __LINE__, true).stream()
 

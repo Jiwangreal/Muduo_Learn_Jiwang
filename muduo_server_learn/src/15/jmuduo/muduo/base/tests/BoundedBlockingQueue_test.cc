@@ -11,7 +11,7 @@ class Test
 {
  public:
   Test(int numThreads)
-    : queue_(20),
+    : queue_(20),//队列的大小初始化=20
       latch_(numThreads),
       threads_(numThreads)
   {

@@ -26,30 +26,37 @@ BOOST_STATIC_ASSERT(sizeof(digits) == 20);
 const char digitsHex[] = "0123456789ABCDEF";
 BOOST_STATIC_ASSERT(sizeof digitsHex == 17);
 
+//十进制转字符串调用这个
 // Efficient Integer to String Conversions, by Matthew Wilson.
 template<typename T>
 size_t convert(char buf[], T value)
 {
   T i = value;
-  char* p = buf;
+  char* p = buf;//p指针指向buf
 
   do
   {
-    int lsd = static_cast<int>(i % 10);
+    //eg：123%3=3
+    int lsd = static_cast<int>(i % 10);//得到最后一个数字3
     i /= 10;
-    *p++ = zero[lsd];
+    *p++ = zero[lsd];//转换成3这个字符'3'
   } while (i != 0);
 
+  //eg:-123，这里得到的是"321-"字符串
   if (value < 0)
   {
     *p++ = '-';
   }
   *p = '\0';
+  
+  //将"321-"逆转得到"-123"
   std::reverse(buf, p);
 
-  return p - buf;
+  return p - buf;//表示转换了几个字符
 }
 
+//十六进制转字符串调用这个
+// uintptr_t对于32平台来说就是unsigned int, 对于64位平台来说unsigned long int
 size_t convertHex(char buf[], uintptr_t value)
 {
   uintptr_t i = value;
@@ -99,13 +106,15 @@ void LogStream::staticCheck()
   BOOST_STATIC_ASSERT(kMaxNumericSize - 10 > std::numeric_limits<long long>::digits10);
 }
 
+//成员模板
 template<typename T>
 void LogStream::formatInteger(T v)
 {
   if (buffer_.avail() >= kMaxNumericSize)
   {
+    //将v整数转换成字符串，然后存放到缓冲区
     size_t len = convert(buffer_.current(), v);
-    buffer_.add(len);
+    buffer_.add(len);//跳转cur_指针
   }
 }
 
@@ -151,6 +160,7 @@ LogStream& LogStream::operator<<(long long v)
   return *this;
 }
 
+//如何把整数存放在LogStream所对应的缓冲区呢？formatInteger
 LogStream& LogStream::operator<<(unsigned long long v)
 {
   formatInteger(v);
@@ -185,13 +195,15 @@ LogStream& LogStream::operator<<(double v)
 template<typename T>
 Fmt::Fmt(const char* fmt, T val)
 {
+  //断言T是算数类型
   BOOST_STATIC_ASSERT(boost::is_arithmetic<T>::value == true);
 
   length_ = snprintf(buf_, sizeof buf_, fmt, val);
   assert(static_cast<size_t>(length_) < sizeof buf_);
 }
 
-// Explicit instantiations
+//算数类型特化，只有这些类型能用char，short....
+// Explicit instantiations显式实例化
 
 template Fmt::Fmt(const char* fmt, char);
 

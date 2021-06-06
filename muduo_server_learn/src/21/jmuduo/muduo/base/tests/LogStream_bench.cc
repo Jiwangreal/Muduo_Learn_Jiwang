@@ -10,6 +10,7 @@ using namespace muduo;
 
 const size_t N = 1000000;
 
+// 忽略C方式的强转告警，eg：(T)(i)
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 
 template<typename T>
@@ -24,6 +25,8 @@ void benchPrintf(const char* fmt)
   printf("benchPrintf %f\n", timeDifference(end, start));
 }
 
+
+//测试STL中的ostringstream
 template<typename T>
 void benchStringStream()
 {
@@ -47,7 +50,9 @@ void benchLogStream()
   LogStream os;
   for (size_t i = 0; i < N; ++i)
   {
+    //格式化进去
     os << (T)(i);
+    //每次格式化都清空下缓冲区再从头开始
     os.resetBuffer();
   }
   Timestamp end(Timestamp::now());
@@ -59,6 +64,7 @@ int main()
 {
   benchPrintf<int>("%d");
 
+  //进行比较
   puts("int");
   benchPrintf<int>("%d");
   benchStringStream<int>();

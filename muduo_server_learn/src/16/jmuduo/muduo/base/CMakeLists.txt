@@ -3,6 +3,7 @@ set(base_SRCS
   CountDownLatch.cc
   Exception.cc
   Thread.cc
+  # 新增，目的是生成muduo_base库
   ThreadPool.cc
   Timestamp.cc
   )

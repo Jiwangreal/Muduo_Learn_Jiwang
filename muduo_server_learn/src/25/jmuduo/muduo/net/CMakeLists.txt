@@ -3,8 +3,10 @@ set(net_SRCS
   )
 
 add_library(muduo_net ${net_SRCS})
+# CurrentThread::tid()来自muduo_base，target_link_libraries(muduo_net muduo_base)
 target_link_libraries(muduo_net muduo_base)
 
+# make install安装的时候，会把头文件安装到相应目录
 install(TARGETS muduo_net DESTINATION lib)
 set(HEADERS
   EventLoop.h

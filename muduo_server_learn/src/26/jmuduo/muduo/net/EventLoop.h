@@ -25,6 +25,7 @@ namespace muduo
 namespace net
 {
 
+//前向声明
 class Channel;
 class Poller;
 ///
@@ -52,11 +53,12 @@ class EventLoop : boost::noncopyable
   Timestamp pollReturnTime() const { return pollReturnTime_; }
 
   // internal usage
-  void updateChannel(Channel* channel);		// 在Poller中添加或者更新通道
+  void updateChannel(Channel* channel);		// 在Poller中添加或者更新(注册)通道
   void removeChannel(Channel* channel);		// 从Poller中移除通道
 
   void assertInLoopThread()
   {
+    //判断是否处于创建该对象的线程中
     if (!isInLoopThread())
     {
       abortNotInLoopThread();
@@ -73,13 +75,20 @@ class EventLoop : boost::noncopyable
 
   typedef std::vector<Channel*> ChannelList;
   
+  //是否处于循环状态
   bool looping_; /* atomic */
+  //是否退出loop
   bool quit_; /* atomic */
+  //当前是否处于事件处理的状态
   bool eventHandling_; /* atomic */
   const pid_t threadId_;		// 当前对象所属线程ID
+
+  //调用poll所返回的时间戳
   Timestamp pollReturnTime_;
+
+  //智能指针，Poller的生存期由EventLoop来控制
   boost::scoped_ptr<Poller> poller_;
-  ChannelList activeChannels_;		// Poller返回的活动通道
+  ChannelList activeChannels_;		// Poller返回的活动通道，产生事件的通道
   Channel* currentActiveChannel_;	// 当前正在处理的活动通道
 };
 

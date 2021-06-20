@@ -18,7 +18,7 @@ using namespace muduo;
 using namespace muduo::net;
 
 const int Channel::kNoneEvent = 0;
-const int Channel::kReadEvent = POLLIN | POLLPRI;
+const int Channel::kReadEvent = POLLIN | POLLPRI;//产生了可读事件或者紧急数据
 const int Channel::kWriteEvent = POLLOUT;
 
 Channel::Channel(EventLoop* loop, int fd__)
@@ -49,15 +49,19 @@ void Channel::update()
   loop_->updateChannel(this);
 }
 
-// 调用这个函数之前确保调用disableAll
+// 调用这个函数之前确保调用disableAll()，否则这里断言会失败
 void Channel::remove()
 {
+  //断言没有要关注的事件
   assert(isNoneEvent());
+
   loop_->removeChannel(this);
 }
 
+//当事件到来的时候会调用handleEvent来处理
 void Channel::handleEvent(Timestamp receiveTime)
 {
+  //生存期控制
   boost::shared_ptr<void> guard;
   if (tied_)
   {
@@ -76,6 +80,7 @@ void Channel::handleEvent(Timestamp receiveTime)
 void Channel::handleEventWithGuard(Timestamp receiveTime)
 {
   eventHandling_ = true;
+  //POLLHUP仅在POLLOUT时产生，读的时候POLLIN是不会产生这个事件的
   if ((revents_ & POLLHUP) && !(revents_ & POLLIN))
   {
     if (logHup_)
@@ -85,19 +90,26 @@ void Channel::handleEventWithGuard(Timestamp receiveTime)
     if (closeCallback_) closeCallback_();
   }
 
+  //fd没有打开或者fd不是一个合法的fd
   if (revents_ & POLLNVAL)
   {
     LOG_WARN << "Channel::handle_event() POLLNVAL";
   }
 
+  //错误的
   if (revents_ & (POLLERR | POLLNVAL))
   {
     if (errorCallback_) errorCallback_();
   }
+
+  //POLLIN,POLLPRI都是可读事件
+  //POLLRDHUP表示对等方关闭连接（连接，半连接），read会返回0
+  //都认为是可读的事件
   if (revents_ & (POLLIN | POLLPRI | POLLRDHUP))
   {
     if (readCallback_) readCallback_(receiveTime);
   }
+  //可写事件产生了
   if (revents_ & POLLOUT)
   {
     if (writeCallback_) writeCallback_();
@@ -105,6 +117,7 @@ void Channel::handleEventWithGuard(Timestamp receiveTime)
   eventHandling_ = false;
 }
 
+//for debug，将事件转成字符串以便调试
 string Channel::reventsToString() const
 {
   std::ostringstream oss;
@@ -124,5 +137,5 @@ string Channel::reventsToString() const
   if (revents_ & POLLNVAL)
     oss << "NVAL ";
 
-  return oss.str().c_str();
+  return oss.str().c_str();//转换成字符串
 }

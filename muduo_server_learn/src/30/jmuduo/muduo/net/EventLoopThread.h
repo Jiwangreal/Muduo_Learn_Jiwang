@@ -29,19 +29,24 @@ class EventLoopThread : boost::noncopyable
  public:
   typedef boost::function<void(EventLoop*)> ThreadInitCallback;
 
+  // ThreadInitCallback()默认是空的回调函数
   EventLoopThread(const ThreadInitCallback& cb = ThreadInitCallback());
   ~EventLoopThread();
-  EventLoop* startLoop();	// 启动线程，该线程就成为了IO线程
+  EventLoop* startLoop();	// 启动线程thread_.start();，该线程就成为了IO线程
+                          //在startLoop()内部会创建一个EventLoop对象，将 loop_指针指向一个EventLoop对象
 
  private:
   void threadFunc();		// 线程函数
 
-  EventLoop* loop_;			// loop_指针指向一个EventLoop对象
-  bool exiting_;
-  Thread thread_;
+  EventLoop* loop_;			// loop_指针指向一个EventLoop对象，一个IO线程有且只有一个EventLoop对象
+  bool exiting_;//是否退出
+  Thread thread_;//基于对象编程是包含一个Thread类对象，若是面向对象编程则应该是继承Thread类对象
+  
+  //配合使用
   MutexLock mutex_;
   Condition cond_;
-  ThreadInitCallback callback_;		// 回调函数在EventLoop::loop事件循环之前被调用
+  
+  ThreadInitCallback callback_;		// 若回调函数不是空的，则回调函数在EventLoop::loop事件循环之前被调用
 };
 
 }

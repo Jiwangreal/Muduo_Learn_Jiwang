@@ -26,6 +26,7 @@ namespace net
 ///
 /// IO Multiplexing with poll(2).
 ///
+//对poll封装
 class PollPoller : public Poller
 {
  public:
@@ -33,7 +34,7 @@ class PollPoller : public Poller
   PollPoller(EventLoop* loop);
   virtual ~PollPoller();
 
-  virtual Timestamp poll(int timeoutMs, ChannelList* activeChannels);
+  virtual Timestamp poll(int timeoutMs, ChannelList* activeChannels);//activeChannels活动的通道列表
   virtual void updateChannel(Channel* channel);
   virtual void removeChannel(Channel* channel);
 
@@ -41,10 +42,10 @@ class PollPoller : public Poller
   void fillActiveChannels(int numEvents,
                           ChannelList* activeChannels) const;
 
-  typedef std::vector<struct pollfd> PollFdList;
+  typedef std::vector<struct pollfd> PollFdList;//调用poll时，需要一个数组，poll第一个形参是：struct pollfd *fds
   typedef std::map<int, Channel*> ChannelMap;	// key是文件描述符，value是Channel*
   PollFdList pollfds_;
-  ChannelMap channels_;
+  ChannelMap channels_;//所关注的通道列表
 };
 
 }

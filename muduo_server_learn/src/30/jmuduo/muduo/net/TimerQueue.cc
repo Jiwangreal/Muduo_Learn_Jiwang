@@ -114,12 +114,15 @@ TimerQueue::~TimerQueue()
   }
 }
 
+// addTimer是线程安全的，因为它使用了runInLoop()
 TimerId TimerQueue::addTimer(const TimerCallback& cb,
                              Timestamp when,
                              double interval)
 {
   Timer* timer = new Timer(cb, when, interval);
 
+  // boost::bind(&TimerQueue::addTimerInLoop, this, timer)得到一个函数，将该函数放到runInLoop()的队列中，让IO线程去执行
+  // 因他是线程安全的，所以在addTimerInLoop中不需要加锁
   loop_->runInLoop(
       boost::bind(&TimerQueue::addTimerInLoop, this, timer));
 	  
@@ -136,9 +139,10 @@ void TimerQueue::cancel(TimerId timerId)
 
 void TimerQueue::addTimerInLoop(Timer* timer)
 {
+  // 断言在IO线程中调用
   loop_->assertInLoopThread();
   // 插入一个定时器，有可能会使得最早到期的定时器发生改变
-  bool earliestChanged = insert(timer);
+  bool earliestChanged = insert(timer);//insert()也不需要加锁了
 
   if (earliestChanged)
   {

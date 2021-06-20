@@ -120,6 +120,11 @@ TimerId TimerQueue::addTimer(const TimerCallback& cb,
 {
   Timer* timer = new Timer(cb, when, interval);
   
+  // void EventLoop::runInLoop(const Functor& cb)因为它的存在，所以下面可以调用
+  // 此时addTimer()就是线程安全的，其他线程也可以调用addTimer()，将任务addTimerInLoop交给loop_所对应的IO线程来处理
+  // 即使不在当前IO线程中调用addTimer()
+  // runInLoop()保证了在不用锁的情况下，实现线程安全，实现线程安全的异步调用，其他线程可以调用了，但是还是转到了loop_
+  // 所对应的IO线程来调用addTimerInLoop()函数
   loop_->runInLoop(
       boost::bind(&TimerQueue::addTimerInLoop, this, timer));
 	  
@@ -129,6 +134,7 @@ TimerId TimerQueue::addTimer(const TimerCallback& cb,
 
 void TimerQueue::cancel(TimerId timerId)
 {
+  // void EventLoop::runInLoop(const Functor& cb)因为它的存在，所以下面可以调用
   loop_->runInLoop(
       boost::bind(&TimerQueue::cancelInLoop, this, timerId));
   //cancelInLoop(timerId);
@@ -138,7 +144,7 @@ void TimerQueue::addTimerInLoop(Timer* timer)
 {
   loop_->assertInLoopThread();
   // 插入一个定时器，有可能会使得最早到期的定时器发生改变
-  bool earliestChanged = insert(timer);
+  bool earliestChanged = insert(timer);//这里的insert()就由以前的加锁，变成不加锁状态
 
   if (earliestChanged)
   {

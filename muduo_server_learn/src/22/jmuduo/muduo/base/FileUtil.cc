@@ -19,7 +19,7 @@
 using namespace muduo;
 
 FileUtil::SmallFile::SmallFile(StringPiece filename)
-  : fd_(::open(filename.data(), O_RDONLY | O_CLOEXEC)),
+  : fd_(::open(filename.data(), O_RDONLY | O_CLOEXEC)),//注意这里使用了系统调用而不是库函数fopen
     err_(0)
 {
   buf_[0] = '\0';
@@ -55,6 +55,7 @@ int FileUtil::SmallFile::readToString(int maxSize,
     if (fileSize)
     {
       struct stat statbuf;
+      //获取文件大小fstat
       if (::fstat(fd_, &statbuf) == 0)
       {
         if (S_ISREG(statbuf.st_mode))
@@ -81,6 +82,7 @@ int FileUtil::SmallFile::readToString(int maxSize,
       }
     }
 
+  //从文件中读取内容到字符串content
     while (content->size() < implicit_cast<size_t>(maxSize))
     {
       size_t toRead = std::min(implicit_cast<size_t>(maxSize) - content->size(), sizeof(buf_));
@@ -107,6 +109,7 @@ int FileUtil::SmallFile::readToBuffer(int* size)
   int err = err_;
   if (fd_ >= 0)
   {
+    //0表示偏移位置，即从头开始读
     ssize_t n = ::pread(fd_, buf_, sizeof(buf_)-1, 0);
     if (n >= 0)
     {
@@ -124,9 +127,19 @@ int FileUtil::SmallFile::readToBuffer(int* size)
   return err;
 }
 
+//特化1
+/*
+特化的原因是：
+  String类型可以取如下：
+  #ifdef MUDUO_STD_STRING
+using std::string;
+#else  // !MUDUO_STD_STRING
+typedef __gnu_cxx::__sso_string string
+#endif;
+*/
 template int FileUtil::readFile(StringPiece filename,
                                 int maxSize,
-                                string* content,
+                                string* content,//特化
                                 int64_t*, int64_t*, int64_t*);
 
 template int FileUtil::SmallFile::readToString(
@@ -135,9 +148,10 @@ template int FileUtil::SmallFile::readToString(
     int64_t*, int64_t*, int64_t*);
 
 #ifndef MUDUO_STD_STRING
+//特化2
 template int FileUtil::readFile(StringPiece filename,
                                 int maxSize,
-                                std::string* content,
+                                std::string* content,//特化
                                 int64_t*, int64_t*, int64_t*);
 
 template int FileUtil::SmallFile::readToString(

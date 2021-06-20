@@ -2,10 +2,13 @@ set(base_SRCS
   Condition.cc
   CountDownLatch.cc
   Exception.cc
+  # 新增
   FileUtil.cc
+  # 新增
   LogFile.cc
   Logging.cc
   LogStream.cc
+  # 新增
   ProcessInfo.cc
   Thread.cc
   ThreadPool.cc

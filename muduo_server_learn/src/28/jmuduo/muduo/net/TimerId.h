@@ -21,8 +21,10 @@ namespace net
 class Timer;
 
 ///
-/// An opaque identifier, for canceling Timer.
+/// An opaque（不透明） identifier, for canceling Timer.
+//不透明：需要关注它的存在
 ///
+//外部可见类
 class TimerId : public muduo::copyable
 {
  public:
@@ -43,8 +45,8 @@ class TimerId : public muduo::copyable
   friend class TimerQueue;
 
  private:
-  Timer* timer_;
-  int64_t sequence_;
+  Timer* timer_;//定时器地址
+  int64_t sequence_;//定时器序号
 };
 
 }

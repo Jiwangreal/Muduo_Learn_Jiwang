@@ -60,16 +60,19 @@ class EventLoop : boost::noncopyable
   /// Runs callback at 'time'.
   /// Safe to call from other threads.
   ///
+  //在某个时刻time，运行定时器，回调函数cb
   TimerId runAt(const Timestamp& time, const TimerCallback& cb);
   ///
   /// Runs callback after @c delay seconds.
   /// Safe to call from other threads.
   ///
+  //过delay时间，运行定时器，回调函数cb
   TimerId runAfter(double delay, const TimerCallback& cb);
   ///
   /// Runs callback every @c interval seconds.
   /// Safe to call from other threads.
   ///
+  //每隔interval时间，运行回调函数cb
   TimerId runEvery(double interval, const TimerCallback& cb);
   ///
   /// Cancels the timer.

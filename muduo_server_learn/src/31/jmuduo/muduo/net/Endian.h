@@ -28,8 +28,19 @@ namespace sockets
 #endif
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+
 inline uint64_t hostToNetwork64(uint64_t host64)
 {
+  // 64bit整数的主机字节序转网络字节序（大端字节序，网络字节序就是大端字节序）
+  // be表示big endian
+  //htobe64只能在linux中使用，因为他们是glibc库的
+  /*
+  POXIS标准：字节序转换
+  对32bit整数进行转化：htonl
+  对16bit整数进行转化：htons
+
+  Linux，win都可以用
+  */
   return htobe64(host64);
 }
 
@@ -43,6 +54,7 @@ inline uint16_t hostToNetwork16(uint16_t host16)
   return htobe16(host16);
 }
 
+// 64bit整数的大端的网络字节序转主机字节序
 inline uint64_t networkToHost64(uint64_t net64)
 {
   return be64toh(net64);

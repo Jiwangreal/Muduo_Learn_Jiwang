@@ -25,6 +25,7 @@ namespace net
 /// Reactor, at most one per thread.
 ///
 /// This is an interface class, so don't expose too much details.
+//EventLoops实际是Reactor模式的封装
 class EventLoop : boost::noncopyable
 {
  public:
@@ -35,7 +36,7 @@ class EventLoop : boost::noncopyable
   /// Loops forever.
   ///
   /// Must be called in the same thread as creation of the object.
-  ///
+  //事件循环
   void loop();
 
   void assertInLoopThread()
@@ -52,7 +53,7 @@ class EventLoop : boost::noncopyable
  private:
   void abortNotInLoopThread();
   
-  bool looping_; /* atomic */
+  bool looping_; /* atomic *///是否处于循环状态
   const pid_t threadId_;		// 当前对象所属线程ID
 };
 

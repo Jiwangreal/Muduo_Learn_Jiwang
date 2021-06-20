@@ -18,8 +18,8 @@ namespace muduo
 #ifdef MUDUO_STD_STRING
 using std::string;
 #else  // !MUDUO_STD_STRING
-typedef __gnu_cxx::__sso_string string;
-#endif
+typedef __gnu_cxx::__sso_string string
+#endif;
 
 // Taken from google-protobuf stubs/common.h
 //

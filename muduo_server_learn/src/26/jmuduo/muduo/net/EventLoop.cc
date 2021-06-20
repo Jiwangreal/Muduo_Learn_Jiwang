@@ -70,21 +70,31 @@ void EventLoop::loop()
   //::poll(NULL, 0, 5*1000);
   while (!quit_)
   {
+    //清除活动通道
     activeChannels_.clear();
+
+    //调用poll返回活动的通道channel：activeChannels_
     pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
     //++iteration_;
+
+    //打印活动通道
     if (Logger::logLevel() <= Logger::TRACE)
     {
       printActiveChannels();
     }
+
     // TODO sort channel by priority
+    //遍历活动通道进行处理
     eventHandling_ = true;
     for (ChannelList::iterator it = activeChannels_.begin();
         it != activeChannels_.end(); ++it)
     {
       currentActiveChannel_ = *it;
+      //调用handleEvent处理通道
       currentActiveChannel_->handleEvent(pollReturnTime_);
     }
+
+    //全部处理完
     currentActiveChannel_ = NULL;
     eventHandling_ = false;
     //doPendingFunctors();
@@ -105,7 +115,10 @@ void EventLoop::quit()
 
 void EventLoop::updateChannel(Channel* channel)
 {
+  //channel所属的EventLoop对象等于本对象才可以处理
   assert(channel->ownerLoop() == this);
+  
+  //断言处在EventLoop线程中
   assertInLoopThread();
   poller_->updateChannel(channel);
 }

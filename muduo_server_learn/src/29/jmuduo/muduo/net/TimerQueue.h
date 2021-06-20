@@ -78,7 +78,10 @@ class TimerQueue : boost::noncopyable
 
   EventLoop* loop_;		// 所属EventLoop
   const int timerfd_;
-  Channel timerfdChannel_;
+
+  Channel timerfdChannel_;//包含了一个timerfdChannel_，TimerQueue与Channel的关系是组合关系：
+                          //TimerQueue负责timerfdChannel_对象生存期的控制，TimerQueue对象被析构，timerfdChannel_对象也会跟着销毁
+
   // Timer list sorted by expiration
   TimerList timers_;	// timers_是按到期时间排序
 

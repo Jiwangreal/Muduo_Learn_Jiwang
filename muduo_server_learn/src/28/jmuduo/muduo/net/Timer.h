@@ -24,6 +24,7 @@ namespace net
 ///
 /// Internal class for timer event.
 ///
+//Timer类对定时操作进行了抽象，没有调用定时器的相关函数timerfd_create 等
 class Timer : boost::noncopyable
 {
  public:
@@ -31,8 +32,10 @@ class Timer : boost::noncopyable
     : callback_(cb),
       expiration_(when),
       interval_(interval),
-      repeat_(interval > 0.0),
-      sequence_(s_numCreated_.incrementAndGet())
+      repeat_(interval > 0.0),//interval> 0.0，repeat_=true说明是重复的定时器，重复的定时器可以restart()
+      sequence_(s_numCreated_.incrementAndGet())//incrementAndGet()先加后获取
+                                                //创建的第一个定时器对象的序号是1
+                                                //由于是原子操作，即使是多线程同时创建Timer对象，也能保证sequence_唯一
   { }
 
   void run() const
@@ -44,18 +47,20 @@ class Timer : boost::noncopyable
   bool repeat() const { return repeat_; }
   int64_t sequence() const { return sequence_; }
 
+  //重启
   void restart(Timestamp now);
 
   static int64_t numCreated() { return s_numCreated_.get(); }
 
  private:
   const TimerCallback callback_;		// 定时器回调函数
-  Timestamp expiration_;				// 下一次的超时时刻
+  Timestamp expiration_;				// 下一次的超时时刻，当超时时刻到来的时候，定时器回调函数被调用
   const double interval_;				// 超时时间间隔，如果是一次性定时器，该值为0
-  const bool repeat_;					// 是否重复
-  const int64_t sequence_;				// 定时器序号
+  const bool repeat_;					// 是否重复，若是false表示一次性定时器，若是true，表示重复定时器
+  const int64_t sequence_;				// 定时器序号，每个定时器都有一个唯一的编号
 
   static AtomicInt64 s_numCreated_;		// 定时器计数，当前已经创建的定时器数量
+                                      //类型是AtomicInt64原子操作类
 };
 }
 }

@@ -108,19 +108,22 @@ void EventLoop::quit()
 
 TimerId EventLoop::runAt(const Timestamp& time, const TimerCallback& cb)
 {
+  //回调函数，定时器到期时间，0.0表示不是重复的定时器
   return timerQueue_->addTimer(cb, time, 0.0);
 }
 
 TimerId EventLoop::runAfter(double delay, const TimerCallback& cb)
 {
+  //当前时间，延时时间
   Timestamp time(addTime(Timestamp::now(), delay));
   return runAt(time, cb);
 }
 
+//间隔定时器
 TimerId EventLoop::runEvery(double interval, const TimerCallback& cb)
 {
-  Timestamp time(addTime(Timestamp::now(), interval));
-  return timerQueue_->addTimer(cb, time, interval);
+  Timestamp time(addTime(Timestamp::now(), interval));//第一次到期时间
+  return timerQueue_->addTimer(cb, time, interval);//回调函数，定时器到期时间，间隔时间，
 }
 
 void EventLoop::cancel(TimerId timerId)

@@ -18,7 +18,7 @@
 
 // INADDR_ANY use (type)value casting.
 #pragma GCC diagnostic ignored "-Wold-style-cast"
-static const in_addr_t kInaddrAny = INADDR_ANY;
+static const in_addr_t kInaddrAny = INADDR_ANY;//INADDR_ANY=0
 #pragma GCC diagnostic error "-Wold-style-cast"
 
 //     /* Structure describing an Internet socket address.  */
@@ -37,22 +37,24 @@ static const in_addr_t kInaddrAny = INADDR_ANY;
 using namespace muduo;
 using namespace muduo::net;
 
+// 下面的断言是可以保证的，因为InetAddress只有一个数据成员：struct sockaddr_in addr_;
 BOOST_STATIC_ASSERT(sizeof(InetAddress) == sizeof(struct sockaddr_in));
 
 InetAddress::InetAddress(uint16_t port)
 {
   bzero(&addr_, sizeof addr_);
   addr_.sin_family = AF_INET;
-  addr_.sin_addr.s_addr = sockets::hostToNetwork32(kInaddrAny);
-  addr_.sin_port = sockets::hostToNetwork16(port);
+  addr_.sin_addr.s_addr = sockets::hostToNetwork32(kInaddrAny);//0的话，可以不用转化，直接写成INADDR_ANY也是可以的
+  addr_.sin_port = sockets::hostToNetwork16(port);//端口转化
 }
 
 InetAddress::InetAddress(const StringPiece& ip, uint16_t port)
 {
   bzero(&addr_, sizeof addr_);
-  sockets::fromIpPort(ip.data(), port, &addr_);
+  sockets::fromIpPort(ip.data(), port, &addr_);//将ip+端口转化为addr_
 }
 
+// 本身的类对象转换为字符串
 string InetAddress::toIpPort() const
 {
   char buf[32];
@@ -60,6 +62,7 @@ string InetAddress::toIpPort() const
   return buf;
 }
 
+// 只转换ip
 string InetAddress::toIp() const
 {
   char buf[32];

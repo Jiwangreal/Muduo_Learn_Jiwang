@@ -92,6 +92,7 @@ class Channel : boost::noncopyable
   int        events_;		// 关注的事件
   int        revents_;		// poll/epoll返回的事件
   int        index_;		// used by Poller.表示在poll的事件数组中的序号
+                        //若是epoll，则表示通道的状态
   bool       logHup_;		// for POLLHUP
 
   boost::weak_ptr<void> tie_;

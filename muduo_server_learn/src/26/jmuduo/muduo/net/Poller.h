@@ -28,6 +28,7 @@ class Channel;
 /// Base class for IO Multiplexing
 ///
 /// This class doesn't own the Channel objects.
+//一个EventLoop包含一个Poller
 class Poller : boost::noncopyable
 {
  public:
@@ -38,11 +39,12 @@ class Poller : boost::noncopyable
 
   /// Polls the I/O events.
   /// Must be called in the loop thread.
+  //三个纯虚函数
   virtual Timestamp poll(int timeoutMs, ChannelList* activeChannels) = 0;
 
   /// Changes the interested I/O events.
   /// Must be called in the loop thread.
-  virtual void updateChannel(Channel* channel) = 0;
+  virtual void updateChannel(Channel* channel) = 0;//由派生类实现
 
   /// Remove the channel, when it destructs.
   /// Must be called in the loop thread.
@@ -56,7 +58,7 @@ class Poller : boost::noncopyable
   }
 
  private:
-  EventLoop* ownerLoop_;	// Poller所属EventLoop
+  EventLoop* ownerLoop_;	// Poller也会登记Poller所属EventLoop
 };
 
 }

@@ -55,8 +55,8 @@ EventLoop::EventLoop()
     threadId_(CurrentThread::tid()),
     poller_(Poller::newDefaultPoller(this)),
     timerQueue_(new TimerQueue(this)),
-    wakeupFd_(createEventfd()),
-    wakeupChannel_(new Channel(this, wakeupFd_)),
+    wakeupFd_(createEventfd()),//创建一个eventfd
+    wakeupChannel_(new Channel(this, wakeupFd_)),//创建一个通道，将wakeupFd_传递进来，用wakeupChannel_来接收
     currentActiveChannel_(NULL)
 {
   LOG_TRACE << "EventLoop created " << this << " in thread " << threadId_;
@@ -70,10 +70,11 @@ EventLoop::EventLoop()
   {
     t_loopInThisThread = this;
   }
+  // wakeupChannel_的回调函数的设定
   wakeupChannel_->setReadCallback(
       boost::bind(&EventLoop::handleRead, this));
   // we are always reading the wakeupfd
-  wakeupChannel_->enableReading();
+  wakeupChannel_->enableReading();//纳入到Poller中管理
 }
 
 EventLoop::~EventLoop()
@@ -121,16 +122,18 @@ void EventLoop::loop()
 }
 
 // 该函数可以跨线程调用
+// 其他线程要让当前的I/O线程退出
 void EventLoop::quit()
 {
   quit_ = true;
-  if (!isInLoopThread())
-  {
-    wakeup();
-  }
+  if (!isInLoopThread())//若不是由当前I/O线程调用的，那么还需要唤醒这个EventLoop对象所对应的I/O线程
+  {                     //因为当前线程还可能阻塞在poll的位置，wakeupFd_所对应的通道，wakeupChannel_就处在可读的状态，返回activeChannels_ 
+    wakeup();           //处理通道 currentActiveChannel_->handleEvent(pollReturnTime_);
+  }                     //唤醒的时候，调用的是：EventLoop::handleRead
 }
 
 // 在I/O线程中执行某个回调函数，该函数可以跨线程调用
+// 添加一些任务到IO线程，让IO线程来执行
 void EventLoop::runInLoop(const Functor& cb)
 {
   if (isInLoopThread())
@@ -138,7 +141,7 @@ void EventLoop::runInLoop(const Functor& cb)
     // 如果是当前IO线程调用runInLoop，则同步调用cb
     cb();
   }
-  else
+  else//调用runInLoop()不是当前IO线程
   {
     // 如果是其它线程调用runInLoop，则异步地将cb添加到队列
     queueInLoop(cb);
@@ -209,11 +212,12 @@ void EventLoop::abortNotInLoopThread()
             << ", current thread id = " <<  CurrentThread::tid();
 }
 
+//如何唤醒
 void EventLoop::wakeup()
 {
-  uint64_t one = 1;
+  uint64_t one = 1;//wakeupFd_只有8个字节的缓冲区，所以这里的类型是uint64_t
   //ssize_t n = sockets::write(wakeupFd_, &one, sizeof one);
-  ssize_t n = ::write(wakeupFd_, &one, sizeof one);
+  ssize_t n = ::write(wakeupFd_, &one, sizeof one);//往wakeupFd_写入8个字节，就可以唤醒等待中的线程
   if (n != sizeof one)
   {
     LOG_ERROR << "EventLoop::wakeup() writes " << n << " bytes instead of 8";
@@ -231,18 +235,38 @@ void EventLoop::handleRead()
   }
 }
 
+// 当调用该函数时，就处于调用这些回调任务的状态中
 void EventLoop::doPendingFunctors()
 {
+  //定义了一个空的向量
   std::vector<Functor> functors;
   callingPendingFunctors_ = true;
 
   {
+    // 只保护这块内容的临界区
   MutexLockGuard lock(mutex_);
-  functors.swap(pendingFunctors_);
-  }
+  functors.swap(pendingFunctors_);//交换完毕后，pendingFunctors_就变成了空
+  }                               //pendingFunctors_的回调任务都放到了functors中
+  /*
+  下面的内容没有保护，这是为啥呢？
+（1）不是简单地在临界区内依次调用Functor，而是把回调列表swap到functors中，这样一方面减小了临界区的长度（意味着不会阻塞其它线程的queueInLoop()：
+  又把回调任务添加进了pendingFunctors_，因为已经将pendingFunctors_交换到functors，下面的代码此时是不会执行的，所以下面的代码不需要取加锁）
+  另一方面，也避免了死锁（因为Functor可能再次调用queueInLoop()）
+  lock//若其位置在callingPendingFunctors_ = true;之下
+    lock（该lock来自queueInLoop()）
+  unlock//若其位置在 callingPendingFunctors_ = false;之上
+  由于此时还没有unlock，中间的是没有办法获得lock锁，递归了就会处于死锁的状态
 
+（2）由于doPendingFunctors()调用的Functor可能再次调用queueInLoop(cb)，这时，queueInLoop()就必须wakeup()，否则新增的cb可能就不能及时调用了
+
+（3）muduo没有在loop()函数中反复执行doPendingFunctors()直到pendingFunctors为空，这是有意的，否则IO线程可能陷入死循环，无法处理IO事件。
+因为doPendingFunctors()调用了functors(),又调用了queueInLoop()将任务添加进来，那么loop()中的doPendingFunctors()可能永远无法执行到空，
+所以没有必要将所有的任务执行完毕，只是将交换出来的任务执行完毕而已。
+  */
+  // 遍历functors列表，执行它
   for (size_t i = 0; i < functors.size(); ++i)
   {
+    // functors回调任务函数
     functors[i]();
   }
   callingPendingFunctors_ = false;

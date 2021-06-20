@@ -23,7 +23,7 @@ namespace sockets
 ///
 /// Creates a non-blocking socket file descriptor,
 /// abort if any error.
-int createNonblockingOrDie();
+int createNonblockingOrDie();//创建一个非阻塞的fd
 
 int  connect(int sockfd, const struct sockaddr_in& addr);
 void bindOrDie(int sockfd, const struct sockaddr_in& addr);

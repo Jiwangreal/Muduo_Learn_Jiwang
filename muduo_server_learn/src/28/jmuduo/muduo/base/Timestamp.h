@@ -90,6 +90,13 @@ inline double timeDifference(Timestamp high, Timestamp low)
 ///
 /// @return timestamp+seconds as Timestamp
 ///
+/*
+不是说类对象用引用传递效率才高，这里使用值传递效率更高
+因为Timestamp只有一个数据成员int64_t microSecondsSinceEpoch_;
+所以timestamp对象可以看成是一个64bit的整数，8个字节。
+参数传递时，会将timestamp参数传递到一个8字节的寄存器中（64bit的平台），而不是传递到堆栈中，所以其效率会更高。
+所以这里使用值传递
+*/
 inline Timestamp addTime(Timestamp timestamp, double seconds)
 {
   int64_t delta = static_cast<int64_t>(seconds * Timestamp::kMicroSecondsPerSecond);

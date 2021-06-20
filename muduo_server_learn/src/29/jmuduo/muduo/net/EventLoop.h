@@ -114,7 +114,7 @@ class EventLoop : boost::noncopyable
 
   void printActiveChannels() const; // DEBUG
 
-  typedef std::vector<Channel*> ChannelList;
+  typedef std::vector<Channel*> ChannelList;//channel列表
   
   bool looping_; /* atomic */
   bool quit_; /* atomic */
@@ -124,10 +124,26 @@ class EventLoop : boost::noncopyable
   Timestamp pollReturnTime_;
   boost::scoped_ptr<Poller> poller_;
   boost::scoped_ptr<TimerQueue> timerQueue_;
-  int wakeupFd_;				// 用于eventfd
+  
+  //保存evenfd所创建的fd
+  int wakeupFd_;				// 用于eventfd：创建一个fd用于事件通知
+                
   // unlike in TimerQueue, which is an internal class,
   // we don't expose Channel to client.
+
+  // wakeupFd_所对应的通道
+  // wakeupChannel_是一个智能指针，那么：EventLoop与wakeupChannel_的关系就是组合关系了
+  // EventLoop销毁，那么wakeupChannel_也就跟着销毁了
+  // 但是前面说过，EventLoop与Channel是一对多的聚合关系，这里是否矛盾？
+  // wakeupChannel_是一个特殊的Channel
   boost::scoped_ptr<Channel> wakeupChannel_;	// 该通道将会纳入poller_来管理
+
+  //EventLoop与ChannelList关系是一对多的关系，但是它不负责这些channel的生存期
+  /*
+  这些Channel可能是TimerQueue中的Channel，处于活动的状态被添加到activeChannels_，
+  timerQueue_中的Channel由timerQueue_负责
+  EventLoop只负责wakeupChannel_的生存期
+  */ 
   ChannelList activeChannels_;		// Poller返回的活动通道
   Channel* currentActiveChannel_;	// 当前正在处理的活动通道
   MutexLock mutex_;

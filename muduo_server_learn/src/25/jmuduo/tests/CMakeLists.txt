@@ -21,8 +21,11 @@ target_link_libraries(log_test2 muduo_base)
 add_executable(pthread_atfork_test Pthread_atfork_test.cc)
 target_link_libraries(pthread_atfork_test pthread)
 
+##新增
 add_executable(reactor_test01 Reactor_test01.cc)
 target_link_libraries(reactor_test01 muduo_net)
 
+##新增
+# reactor_test02依赖muduo_net库，muduo_net依赖muduo_base，由于muduo_net前面配置好了，已经依赖了muduo_net，所以这里不用写成：target_link_libraries(reactor_test02 muduo_net muduo_base)
 add_executable(reactor_test02 Reactor_test02.cc)
 target_link_libraries(reactor_test02 muduo_net)

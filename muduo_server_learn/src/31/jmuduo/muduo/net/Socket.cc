@@ -33,6 +33,7 @@ void Socket::listen()
   sockets::listenOrDie(sockfd_);
 }
 
+// InetAddress对网际地址的封装，上层应用看不到 struct sockaddr_in，而是看到的是InetAddress
 int Socket::accept(InetAddress* peeraddr)
 {
   struct sockaddr_in addr;
@@ -47,11 +48,13 @@ int Socket::accept(InetAddress* peeraddr)
 
 void Socket::shutdownWrite()
 {
+  // sockets是名称空间
   sockets::shutdownWrite(sockfd_);
 }
 
 void Socket::setTcpNoDelay(bool on)
 {
+  //on若是true，则是禁用Nagle算法
   int optval = on ? 1 : 0;
   ::setsockopt(sockfd_, IPPROTO_TCP, TCP_NODELAY,
                &optval, sizeof optval);
@@ -68,6 +71,8 @@ void Socket::setReuseAddr(bool on)
 
 void Socket::setKeepAlive(bool on)
 {
+  // on=true表示开启tcp层的心跳
+  // 应用层有心跳，可以不设置
   int optval = on ? 1 : 0;
   ::setsockopt(sockfd_, SOL_SOCKET, SO_KEEPALIVE,
                &optval, sizeof optval);

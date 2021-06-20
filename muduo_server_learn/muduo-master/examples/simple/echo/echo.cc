@@ -24,20 +24,22 @@ void EchoServer::start()
   server_.start();
 }
 
+//连接建立和断开时回调
 void EchoServer::onConnection(const muduo::net::TcpConnectionPtr& conn)
 {
   LOG_INFO << "EchoServer - " << conn->peerAddress().toIpPort() << " -> "
            << conn->localAddress().toIpPort() << " is "
-           << (conn->connected() ? "UP" : "DOWN");
+           << (conn->connected() ? "UP" : "DOWN");//connected判断是连接建立还是连接断开
 }
 
 void EchoServer::onMessage(const muduo::net::TcpConnectionPtr& conn,
                            muduo::net::Buffer* buf,
                            muduo::Timestamp time)
 {
+  //消息到达取出来
   muduo::string msg(buf->retrieveAllAsString());
   LOG_INFO << conn->name() << " echo " << msg.size() << " bytes, "
            << "data received at " << time.toString();
-  conn->send(msg);
+  conn->send(msg);//发送回去
 }
 

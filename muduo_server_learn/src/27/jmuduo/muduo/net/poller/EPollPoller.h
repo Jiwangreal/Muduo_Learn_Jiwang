@@ -47,8 +47,8 @@ class EPollPoller : public Poller
   typedef std::map<int, Channel*> ChannelMap;
 
   int epollfd_;
-  EventList events_;
-  ChannelMap channels_;
+  EventList events_;//实际所返回的事件列表
+  ChannelMap channels_;//具体要关注的通道
 };
 
 }

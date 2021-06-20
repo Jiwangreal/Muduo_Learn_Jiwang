@@ -21,6 +21,7 @@ namespace muduo
 namespace FileUtil
 {
 
+  //小文件读取
   class SmallFile : boost::noncopyable
   {
    public:
@@ -28,6 +29,7 @@ namespace FileUtil
     ~SmallFile();
 
     // return errno
+    //读取到content没有限制
     template<typename String>
     int readToString(int maxSize,
                      String* content,
@@ -36,7 +38,7 @@ namespace FileUtil
                      int64_t* createTime);
 
     // return errno
-    int readToBuffer(int* size);
+    int readToBuffer(int* size);//读取到缓冲区有限制
 
     const char* buffer() const { return buf_; }
 
@@ -48,14 +50,24 @@ namespace FileUtil
     char buf_[kBufferSize];
   };
 
+
+  //从filename，保存到content字符串中
+  /*
+  String类型可以取如下：
+  #ifdef MUDUO_STD_STRING
+using std::string;
+#else  // !MUDUO_STD_STRING
+typedef __gnu_cxx::__sso_string string
+#endif;
+  */
   // read the file content, returns errno if error happens.
   template<typename String>
   int readFile(StringPiece filename,
                int maxSize,
                String* content,
-               int64_t* fileSize = NULL,
-               int64_t* modifyTime = NULL,
-               int64_t* createTime = NULL)
+               int64_t* fileSize = NULL,//文件大小
+               int64_t* modifyTime = NULL,//文件修改时间
+               int64_t* createTime = NULL)//文件创建时间
   {
     SmallFile file(filename);
     return file.readToString(maxSize, content, fileSize, modifyTime, createTime);

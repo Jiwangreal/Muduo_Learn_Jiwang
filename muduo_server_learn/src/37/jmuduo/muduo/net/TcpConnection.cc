@@ -22,6 +22,7 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 默认连接到来的回调函数
 void muduo::net::defaultConnectionCallback(const TcpConnectionPtr& conn)
 {
   LOG_TRACE << conn->localAddress().toIpPort() << " -> "
@@ -29,6 +30,7 @@ void muduo::net::defaultConnectionCallback(const TcpConnectionPtr& conn)
             << (conn->connected() ? "UP" : "DOWN");
 }
 
+// 默认消息到来的回调函数
 void muduo::net::defaultMessageCallback(const TcpConnectionPtr&,
                                         Buffer* buf,
                                         Timestamp)
@@ -81,7 +83,9 @@ void TcpConnection::send(const void* data, size_t len)
     }
     else
     {
-      string message(static_cast<const char*>(data), len);
+      // 如果不在当前IO线程，直接转到IO线程所属的EventLoop来调用
+      string message(static_cast<const char*>(data), len);//跨线程调用会一定的开销
+                                                          //需要把缓冲区message构造出来，传递过去
       loop_->runInLoop(
           boost::bind(&TcpConnection::sendInLoop,
                       this,
@@ -105,7 +109,7 @@ void TcpConnection::send(const StringPiece& message)
           boost::bind(&TcpConnection::sendInLoop,
                       this,
                       message.as_string()));
-                    //std::forward<string>(message)));
+                    //std::forward<string>(message)));//若C++11标准的话，可改
     }
   }
 }
@@ -115,13 +119,15 @@ void TcpConnection::send(Buffer* buf)
 {
   if (state_ == kConnected)
   {
+    // 在IO线程
     if (loop_->isInLoopThread())
     {
-      sendInLoop(buf->peek(), buf->readableBytes());
-      buf->retrieveAll();
+      sendInLoop(buf->peek(), buf->readableBytes());//buf->peek()代表读的指针位置
+      buf->retrieveAll();//移除缓冲区的内容
     }
     else
     {
+      // 不在IO线程 
       loop_->runInLoop(
           boost::bind(&TcpConnection::sendInLoop,
                       this,
@@ -139,6 +145,7 @@ void TcpConnection::sendInLoop(const StringPiece& message)
 void TcpConnection::sendInLoop(const void* data, size_t len)
 {
   loop_->assertInLoopThread();
+  // channel_->fd()是已连接socket
   sockets::write(channel_->fd(), data, len);
   
   /*
@@ -152,6 +159,12 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
     return;
   }
   // if no thing in output queue, try writing directly
+  // outputBuffer_缓冲区
+  buffer类本身不是线程安全的，在处理数据的时候都没有加锁和解锁。
+  原因是：buffer共给TcpConnection使用的，TcpConnection的发送方法send()会转到它所属的IO线程中操作，
+  一个TcpConnection只能属于一个IO线程来处理，所以不用对buffer加锁，因为同一个时刻只有一个线程来操作，
+  buffer是每个连接都私有的，而不是所有连接所共享的，所以它是不需要锁操作的。所以没必要把buffer设置成加锁的。
+
   if (!channel_->isWriting() && outputBuffer_.readableBytes() == 0)
   {
     nwrote = sockets::write(channel_->fd(), data, len);
@@ -256,6 +269,7 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   ssize_t n = inputBuffer_.readFd(channel_->fd(), &savedErrno);
   if (n > 0)
   {
+    // receiveTime消息到来的时间，因为poll的时候会返回一个时间
     messageCallback_(shared_from_this(), &inputBuffer_, receiveTime);
   }
   else if (n == 0)

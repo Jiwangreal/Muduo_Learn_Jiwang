@@ -94,7 +94,7 @@ class Channel : boost::noncopyable
   int        index_;		// used by Poller.表示在poll的事件数组中的序号
   bool       logHup_;		// for POLLHUP
 
-  boost::weak_ptr<void> tie_;
+  boost::weak_ptr<void> tie_;//表示可以弱引用到任意的无类型指针
   bool tied_;
   bool eventHandling_;		// 是否处于处理事件中
   ReadEventCallback readCallback_;

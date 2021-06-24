@@ -55,6 +55,7 @@ class TcpServer : boost::noncopyable
   /// - 1 means all I/O in another thread.
   /// - N means a thread pool with N threads, new connections
   ///   are assigned on a round-robin basis.
+  //新增
   void setThreadNum(int numThreads);
   void setThreadInitCallback(const ThreadInitCallback& cb)
   { threadInitCallback_ = cb; }
@@ -92,7 +93,7 @@ class TcpServer : boost::noncopyable
   const string hostport_;		// 服务端口
   const string name_;			// 服务名
   boost::scoped_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
-  boost::scoped_ptr<EventLoopThreadPool> threadPool_;
+  boost::scoped_ptr<EventLoopThreadPool> threadPool_;//包含一个threadPool_对象
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
   ThreadInitCallback threadInitCallback_;	// IO线程池中的线程在进入事件循环前，会回调用此函数

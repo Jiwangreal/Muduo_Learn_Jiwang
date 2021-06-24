@@ -69,14 +69,16 @@ class TcpConnection : boost::noncopyable,
 
   // called when TcpServer accepts a new connection
   void connectEstablished();   // should be called only once
+
   // called when TcpServer has removed me from its map
   void connectDestroyed();  // should be called only once
-
+                            //放到functors的列表中
+                            // 调用它，此时处于kDisconnected状态
  private:
   enum StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
   void handleRead(Timestamp receiveTime);
   void handleClose();
-  void handleError();
+  void handleError();//因为Channel有一些错误的事件，eg：if (errorCallback_) errorCallback_();
   void setState(StateE s) { state_ = s; }
 
   EventLoop* loop_;			// 所属EventLoop
@@ -89,7 +91,8 @@ class TcpConnection : boost::noncopyable,
   InetAddress peerAddr_;
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
-  CloseCallback closeCallback_;
+  CloseCallback closeCallback_;//设置的是内部断开回调函数，设置TcpConnection中的removeConnection()函数
+                                // 并不是用户外部的回调函数
 };
 
 typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;

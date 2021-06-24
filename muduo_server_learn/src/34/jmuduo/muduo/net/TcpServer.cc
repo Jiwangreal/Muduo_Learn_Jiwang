@@ -73,6 +73,7 @@ void TcpServer::start()
   }
 }
 
+// 当连接到来的时候
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
@@ -87,15 +88,17 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
   InetAddress localAddr(sockets::getLocalAddr(sockfd));
   // FIXME poll with zero timeout to double confirm the new connection
   // FIXME use make_shared if necessary
+  // 当一个连接到来的时候，创建一个TcpConnection对象，立即用shared_ptr来接管
+  // conn是一个临时对象
   TcpConnectionPtr conn(new TcpConnection(loop_,
                                           connName,
                                           sockfd,
                                           localAddr,
                                           peerAddr));
 
-  LOG_TRACE << "[1] usecount=" << conn.use_count();
+  LOG_TRACE << "[1] usecount=" << conn.use_count();//此时引用计数=1
   connections_[connName] = conn;
-  LOG_TRACE << "[2] usecount=" << conn.use_count();
+  LOG_TRACE << "[2] usecount=" << conn.use_count();//加入到map中，引用计数=2
   conn->setConnectionCallback(connectionCallback_);
   conn->setMessageCallback(messageCallback_);
 
@@ -103,9 +106,9 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
       boost::bind(&TcpServer::removeConnection, this, _1));
 
   conn->connectEstablished();
-  LOG_TRACE << "[5] usecount=" << conn.use_count();
+  LOG_TRACE << "[5] usecount=" << conn.use_count();//这里引用计数=2
 
-}
+}//跳出后，引用计数=1，因为只有connections_有一个shared_ptr对象，因为conn是一个临时对象
 
 void TcpServer::removeConnection(const TcpConnectionPtr& conn)
 {
@@ -115,14 +118,17 @@ void TcpServer::removeConnection(const TcpConnectionPtr& conn)
 
 
   LOG_TRACE << "[8] usecount=" << conn.use_count();
-  size_t n = connections_.erase(conn->name());
+  size_t n = connections_.erase(conn->name());//将TcpConnection对象从列表中移除，引用计数肯定会减1
   LOG_TRACE << "[9] usecount=" << conn.use_count();
 
   (void)n;
   assert(n == 1);
   
   loop_->queueInLoop(
-      boost::bind(&TcpConnection::connectDestroyed, conn));
+      boost::bind(&TcpConnection::connectDestroyed, conn));//boost::bind(&TcpConnection::connectDestroyed, conn)得到一个boost::function对象
+                                                          //这个conn对象就是shared_ptr<TcpConnection>，引用计数会+1
+                                                          // 看连接关闭时序图可知：EventLoop事件处理完毕之后就开始处理functors，在这里面调用了
+                                                          // connectDestroyed(),
   LOG_TRACE << "[10] usecount=" << conn.use_count();
 
 }

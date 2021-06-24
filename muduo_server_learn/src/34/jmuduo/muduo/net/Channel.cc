@@ -40,7 +40,7 @@ Channel::~Channel()
 
 void Channel::tie(const boost::shared_ptr<void>& obj)
 {
-  tie_ = obj;
+  tie_ = obj;//tie_是弱引用，不会把shared_ptr对象的引用计数+1
   tied_ = true;
 }
 
@@ -58,13 +58,13 @@ void Channel::remove()
 
 void Channel::handleEvent(Timestamp receiveTime)
 {
-  boost::shared_ptr<void> guard;
+  boost::shared_ptr<void> guard;//guard局部对象
   if (tied_)
   {
-    guard = tie_.lock();
+    guard = tie_.lock();//弱引用提升，返回一个shared_ptr对象
     if (guard)
     {
-      LOG_TRACE << "[6] usecount=" << guard.use_count();
+      LOG_TRACE << "[6] usecount=" << guard.use_count();//引用+1=2
       handleEventWithGuard(receiveTime);
 	  LOG_TRACE << "[12] usecount=" << guard.use_count();
     }
@@ -73,7 +73,7 @@ void Channel::handleEvent(Timestamp receiveTime)
   {
     handleEventWithGuard(receiveTime);
   }
-}
+}//引用计数=1
 
 void Channel::handleEventWithGuard(Timestamp receiveTime)
 {

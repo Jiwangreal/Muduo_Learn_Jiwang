@@ -51,6 +51,7 @@ typedef boost::function<void (const TcpConnectionPtr&)> WriteCompleteCallback;
 typedef boost::function<void (const TcpConnectionPtr&, size_t)> HighWaterMarkCallback;
 
 // the data has been read to (buf, len)
+// Timestamp消息到达的时间
 typedef boost::function<void (const TcpConnectionPtr&,
                               Buffer*,
                               Timestamp)> MessageCallback;
@@ -60,6 +61,8 @@ void defaultMessageCallback(const TcpConnectionPtr& conn,
                             Buffer* buffer,
                             Timestamp receiveTime);
 							*/
+
+// len是数据的长度
 typedef boost::function<void (const TcpConnectionPtr&,
                               const char* data,
                               ssize_t len)> MessageCallback;

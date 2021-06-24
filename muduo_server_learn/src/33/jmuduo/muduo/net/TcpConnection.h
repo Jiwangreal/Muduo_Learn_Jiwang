@@ -37,6 +37,7 @@ class Socket;
 /// TCP connection, for both client and server usage.
 ///
 /// This is an interface class, so don't expose too much details.
+// 继承至enable_shared_from_this原因是这与TcpConnection的生存期管理有关
 class TcpConnection : boost::noncopyable,
                       public boost::enable_shared_from_this<TcpConnection>
 {
@@ -67,23 +68,27 @@ class TcpConnection : boost::noncopyable,
   void connectEstablished();   // should be called only once
 
  private:
+  //枚举2个状态：处于正在连接，连接成功的状态  
   enum StateE { /*kDisconnected, */kConnecting, kConnected/*, kDisconnecting*/ };
   void handleRead(Timestamp receiveTime);
   void setState(StateE s) { state_ = s; }
 
   EventLoop* loop_;			// 所属EventLoop
   string name_;				// 连接名
-  StateE state_;  // FIXME: use atomic variable
+  StateE state_;  // FIXME: use atomic variable，连接状态
   // we don't expose those classes to client.
+
+  //2个最重要的数据成员
   boost::scoped_ptr<Socket> socket_;
   boost::scoped_ptr<Channel> channel_;
-  InetAddress localAddr_;
-  InetAddress peerAddr_;
+
+  InetAddress localAddr_;//一个连接的本地地址
+  InetAddress peerAddr_;//一个连接的对等方的地址
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
 };
 
-typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;
+typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;//shared_ptr管理TcpConnectionPtr
 
 }
 }

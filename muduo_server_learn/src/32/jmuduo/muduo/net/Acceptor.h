@@ -46,11 +46,11 @@ class Acceptor : boost::noncopyable
  private:
   void handleRead();
 
-  EventLoop* loop_;
-  Socket acceptSocket_;
-  Channel acceptChannel_;
+  EventLoop* loop_;//acceptChannel_所属的EventLoop
+  Socket acceptSocket_;//监听socket
+  Channel acceptChannel_;//该通道会去观察监听socket的可读事件
   NewConnectionCallback newConnectionCallback_;
-  bool listenning_;
+  bool listenning_;//是否处于监听的状态
   int idleFd_;
 };
 

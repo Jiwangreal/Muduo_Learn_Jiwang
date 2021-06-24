@@ -3,6 +3,7 @@ set(net_SRCS
   Channel.cc
   EventLoop.cc
   EventLoopThread.cc
+  # 新增
   EventLoopThreadPool.cc
   InetAddress.cc
   Poller.cc
@@ -27,6 +28,7 @@ set(HEADERS
   Endian.h
   EventLoop.h
   EventLoopThread.h
+  # 新增
   EventLoopThreadPool.h
   InetAddress.h
   TcpConnection.h

@@ -13,7 +13,7 @@ class TestServer
 {
  public:
   TestServer(EventLoop* loop,
-             const InetAddress& listenAddr, int numThreads)
+             const InetAddress& listenAddr, int numThreads)//numThreads:线程池中创建的IO线程的个数
     : loop_(loop),
       server_(loop, listenAddr, "TestServer"),
       numThreads_(numThreads)
@@ -22,12 +22,12 @@ class TestServer
         boost::bind(&TestServer::onConnection, this, _1));
     server_.setMessageCallback(
         boost::bind(&TestServer::onMessage, this, _1, _2, _3));
-    server_.setThreadNum(numThreads);
+    server_.setThreadNum(numThreads);//这里可以直接设置是单线程还是多线程模式
   }
 
   void start()
   {
-	  server_.start();
+	  server_.start();//启动服务器
   }
 
  private:
@@ -65,10 +65,10 @@ int main()
   printf("main(): pid = %d\n", getpid());
 
   InetAddress listenAddr(8888);
-  EventLoop loop;
+  EventLoop loop;//主线程构造一个EventLoop对象
 
-  TestServer server(&loop, listenAddr,4);
+  TestServer server(&loop, listenAddr,4);//主线程构造一个TestServer对象,创建了4个IO线程,总的IO线程个数=5
   server.start();
 
-  loop.loop();
+  loop.loop();//5个事件循环:1个主线程+4个内部的IO线程,所以总共有5个EventLoop对象
 }

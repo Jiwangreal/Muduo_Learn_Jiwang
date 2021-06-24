@@ -44,8 +44,8 @@ TcpConnection::TcpConnection(EventLoop* loop,
   : loop_(CHECK_NOTNULL(loop)),
     name_(nameArg),
     state_(kConnecting),
-    socket_(new Socket(sockfd)),
-    channel_(new Channel(loop, sockfd)),
+    socket_(new Socket(sockfd)),//构造一个socket
+    channel_(new Channel(loop, sockfd)),//构造一个通道
     localAddr_(localAddr),
     peerAddr_(peerAddr)/*,
     highWaterMark_(64*1024*1024)*/
@@ -70,11 +70,16 @@ void TcpConnection::connectEstablished()
   assert(state_ == kConnecting);
   setState(kConnected);
   channel_->tie(shared_from_this());
+
+  // 一旦连接成功，则关注它的可读事件
   channel_->enableReading();	// TcpConnection所对应的通道加入到Poller关注
+                              //该通道里面所对应的socket可读事件产生了，那么该通道就会被Poller返回
+                              //调用handleEvent()，接着调用handleRead
 
   connectionCallback_(shared_from_this());
 }
 
+// 当一个消息到来时，回调handleRead()
 void TcpConnection::handleRead(Timestamp receiveTime)
 {
   /*
@@ -99,6 +104,8 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   loop_->assertInLoopThread();
   char buf[65536];
   ssize_t n = ::read(channel_->fd(), buf, sizeof buf);
+
+  // shared_from_this()用this就好了，这么做：可以将当前TcpConnection裸指针（TcpConnection*）转换成shared_ptr
   messageCallback_(shared_from_this(), buf, n);
 }
 

@@ -42,6 +42,21 @@ target_link_libraries(reactor_test06 muduo_net)
 add_executable(reactor_test07 Reactor_test07.cc)
 target_link_libraries(reactor_test07 muduo_net)
 
+# 新增
+
+# 这么做的原因是：编译的时候会报错
+# 因为接口改变了：
+# jmuduo\muduo\net\Callbacks.h
+# /*typedef boost::function<void (const TcpConnectionPtr&,
+#                               const char* data,
+#                               ssize_t len)> MessageCallback;*/
+# 之前的接口都是：
+# jmuduo\tests\Reactor_test08.cc
+# void onMessage(const TcpConnectionPtr& conn,
+#                const char* data,
+#                ssize_t len)
+# 所以为了保留之前的接口，这里先不去该他，而注释掉了。
+
 #add_executable(reactor_test08 Reactor_test08.cc)
 #target_link_libraries(reactor_test08 muduo_net)
 #
@@ -51,8 +66,10 @@ target_link_libraries(reactor_test07 muduo_net)
 #add_executable(reactor_test10 Reactor_test10.cc)
 #target_link_libraries(reactor_test10 muduo_net)
 
+# 新增
 add_executable(reactor_test11 Reactor_test11.cc)
 target_link_libraries(reactor_test11 muduo_net)
 
+# 新增
 add_executable(reactor_test12 Reactor_test12.cc)
 target_link_libraries(reactor_test12 muduo_net)

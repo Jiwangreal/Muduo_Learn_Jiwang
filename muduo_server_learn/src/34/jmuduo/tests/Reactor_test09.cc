@@ -29,15 +29,16 @@ class TestServer
   }
 
  private:
+//  用户所设置的回调函数，既包含连接建立也包含连接断开
   void onConnection(const TcpConnectionPtr& conn)
   {
-    if (conn->connected())
+    if (conn->connected())//连接建立的状态
     {
       printf("onConnection(): new connection [%s] from %s\n",
              conn->name().c_str(),
              conn->peerAddress().toIpPort().c_str());
     }
-    else
+    else//连接断开的状态
     {
       printf("onConnection(): connection [%s] is down\n",
              conn->name().c_str());

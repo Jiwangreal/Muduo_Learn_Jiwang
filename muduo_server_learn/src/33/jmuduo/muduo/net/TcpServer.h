@@ -37,8 +37,8 @@ class TcpServer : boost::noncopyable
 
   //TcpServer(EventLoop* loop, const InetAddress& listenAddr);
   TcpServer(EventLoop* loop,
-            const InetAddress& listenAddr,
-            const string& nameArg);
+            const InetAddress& listenAddr,//地址
+            const string& nameArg);//名称
   ~TcpServer();  // force out-line dtor, for scoped_ptr members.
 
   const string& hostport() const { return hostport_; }
@@ -65,17 +65,19 @@ class TcpServer : boost::noncopyable
 
  private:
   /// Not thread safe, but in loop
-  void newConnection(int sockfd, const InetAddress& peerAddr);
+  void newConnection(int sockfd, const InetAddress& peerAddr);//连接到来的时候回调的函数
 
+  // <连接的名称，连接对象的指针>
   typedef std::map<string, TcpConnectionPtr> ConnectionMap;
 
-  EventLoop* loop_;  // the acceptor loop
+  EventLoop* loop_;  // the acceptor loop，acceptor_所属的EventLoop
   const string hostport_;		// 服务端口
   const string name_;			// 服务名
-  boost::scoped_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
-  ConnectionCallback connectionCallback_;
-  MessageCallback messageCallback_;
-  bool started_;
+  boost::scoped_ptr<Acceptor> acceptor_; // avoid revealing Acceptor，用智能指针来管理acceptor_
+  ConnectionCallback connectionCallback_;//连接到来的回调函数
+  MessageCallback messageCallback_;//消息到来的回调函数
+
+  bool started_;//是否已经启动
   // always in loop thread
   int nextConnId_;				// 下一个连接ID
   ConnectionMap connections_;	// 连接列表

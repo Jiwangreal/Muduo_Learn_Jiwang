@@ -58,10 +58,13 @@ class TcpConnection : boost::noncopyable,
   bool connected() const { return state_ == kConnected; }
 
   // void send(string&& message); // C++11
+  // 线程安全
   void send(const void* message, size_t len);
-  void send(const StringPiece& message);
+  void send(const StringPiece& message);//StringPiece一个字符串
   // void send(Buffer&& message); // C++11
   void send(Buffer* message);  // this one will swap data
+
+  //非线程安全
   void shutdown(); // NOT thread safe, no simultaneous calling
   void setTcpNoDelay(bool on);
 

@@ -9,6 +9,7 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 这里采用基于对象的编程思想，如果是面向对象编程思想：这里应该继承TcpServer，然后去覆盖onConnection和onMessage方法
 class TestServer
 {
  public:
@@ -64,6 +65,7 @@ int main()
   InetAddress listenAddr(8888);
   EventLoop loop;
 
+  // 相较于33\jmuduo\tests\Reactor_test08.cc封装了下
   TestServer server(&loop, listenAddr);
   server.start();
 

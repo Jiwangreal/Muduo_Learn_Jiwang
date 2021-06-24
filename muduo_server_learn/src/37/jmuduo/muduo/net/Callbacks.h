@@ -55,6 +55,7 @@ typedef boost::function<void (const TcpConnectionPtr&,
                               Buffer*,
                               Timestamp)> MessageCallback;
 
+// 这俩函数的实现，在37\jmuduo\muduo\net\TcpConnection.cc
 void defaultConnectionCallback(const TcpConnectionPtr& conn);
 void defaultMessageCallback(const TcpConnectionPtr& conn,
                             Buffer* buffer,

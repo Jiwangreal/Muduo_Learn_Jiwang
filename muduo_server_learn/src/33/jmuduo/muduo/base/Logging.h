@@ -116,10 +116,12 @@ const char* strerror_tl(int savedErrno);
 // Check that the input is non NULL.  This very useful in constructor
 // initializer lists.
 
+// #val中的一个#表示变成一个字符串
 #define CHECK_NOTNULL(val) \
   ::muduo::CheckNotNull(__FILE__, __LINE__, "'" #val "' Must be non NULL", (val))
 
 // A small helper for CHECK_NOTNULL().
+// 第4个参数ptr是上面的(val)
 template <typename T>
 T* CheckNotNull(Logger::SourceFile file, int line, const char *names, T* ptr) {
   if (ptr == NULL) {

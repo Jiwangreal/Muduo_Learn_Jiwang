@@ -34,13 +34,17 @@ int main()
 {
   printf("main(): pid = %d\n", getpid());
 
+ //构造一个地址对象
   InetAddress listenAddr(8888);
+
+  // 构造一个EventLoop对象
   EventLoop loop;
 
+  // 构造一个TcpServer对象
   TcpServer server(&loop, listenAddr, "TestServer");
-  server.setConnectionCallback(onConnection);
-  server.setMessageCallback(onMessage);
-  server.start();
+  server.setConnectionCallback(onConnection);//连接到来的回调
+  server.setMessageCallback(onMessage);//消息到来的回调
+  server.start();//启动
 
   loop.loop();
 }

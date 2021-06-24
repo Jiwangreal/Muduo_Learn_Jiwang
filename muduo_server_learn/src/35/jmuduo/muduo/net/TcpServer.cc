@@ -28,7 +28,7 @@ TcpServer::TcpServer(EventLoop* loop,
     hostport_(listenAddr.toIpPort()),
     name_(nameArg),
     acceptor_(new Acceptor(loop, listenAddr)),
-    threadPool_(new EventLoopThreadPool(loop)),
+    threadPool_(new EventLoopThreadPool(loop)),//构造一个threadPool_对象，这个loop是mainReactor
     /*connectionCallback_(defaultConnectionCallback),
     messageCallback_(defaultMessageCallback),*/
     started_(false),
@@ -56,10 +56,11 @@ TcpServer::~TcpServer()
   }
 }
 
+// 若这里设置4个，其实应该是5个，一个是主的IO线程
 void TcpServer::setThreadNum(int numThreads)
 {
   assert(0 <= numThreads);
-  threadPool_->setThreadNum(numThreads);
+  threadPool_->setThreadNum(numThreads);//设置线程池中IO线程的个数，不包含主EventLoop所属的IO线程
 }
 
 // 该函数多次调用是无害的
@@ -69,7 +70,7 @@ void TcpServer::start()
   if (!started_)
   {
     started_ = true;
-	threadPool_->start(threadInitCallback_);
+	threadPool_->start(threadInitCallback_);//启动线程池,内部创建了threadInitCallback_个IO线程,从而分配了threadInitCallback_个EventLoop对象
   }
 
   if (!acceptor_->listenning())
@@ -80,11 +81,12 @@ void TcpServer::start()
   }
 }
 
+// 当一个新的连接到来，回调newConnection()
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
-  // 按照轮叫的方式选择一个EventLoop
-  EventLoop* ioLoop = threadPool_->getNextLoop();
+  // 按照轮叫的方式选择一个EventLoop，也就是选择了EventLoop所对应的线程来处理这个连接
+  EventLoop* ioLoop = threadPool_->getNextLoop();//ioLoop选择的是下一个EventLoop对象
   char buf[32];
   snprintf(buf, sizeof buf, ":%s#%d", hostport_.c_str(), nextConnId_);
   ++nextConnId_;
@@ -101,7 +103,10 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
                                           sockfd,
                                           localAddr,
                                           peerAddr));*/
-
+  // 所属的loop就是该ioLoop。
+  // 若线程池的线程个数不为0,则ioLoop就不等于EventLoop* loop_; 
+  // 所以当线程池个数为0时,这里TcpConnectionPtr conn(new TcpConnection(loop_,不要这么写,因为这里修改的loop_对象与上面的ioLoop
+  // 不是一个对象
   TcpConnectionPtr conn(new TcpConnection(ioLoop,
                                           connName,
                                           sockfd,
@@ -118,6 +123,8 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
       boost::bind(&TcpServer::removeConnection, this, _1));
 
   // conn->connectEstablished();
+  // 让ioLoop所属的IO线程调用connectEstablished()
+  // 由于当前线程与ioLoop所属的线程不在同一个线程,把connectEstablished加入到ioLoop线程所属的EventLoop队列中
   ioLoop->runInLoop(boost::bind(&TcpConnection::connectEstablished, conn));
   LOG_TRACE << "[5] usecount=" << conn.use_count();
 

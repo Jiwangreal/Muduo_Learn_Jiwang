@@ -34,6 +34,7 @@ int main(void)
 	char buf[1024] ={0};
 	while (1)
 	{
+		// 如果这里直接接收服务器端的300个字节，说明2条消息是一次性的接收了，就是所谓的粘包问题
 		int ret = read(sock, buf, sizeof(buf));
 		printf("ret=%d\n", ret);
 		if (ret == 0)

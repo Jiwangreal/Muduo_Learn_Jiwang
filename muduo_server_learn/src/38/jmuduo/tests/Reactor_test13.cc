@@ -24,6 +24,7 @@ class TestServer
 	server_.setWriteCompleteCallback(
       boost::bind(&TestServer::onWriteComplete, this, _1));
 
+    //这是一个chargen服务器程序，即是一个字符发送器协议
     // 生成数据
     string line;
     for (int i = 33; i < 127; ++i)
@@ -34,7 +35,7 @@ class TestServer
 
     for (size_t i = 0; i < 127-33; ++i)
     {
-      message_ += line.substr(i, 72) + '\n';
+      message_ += line.substr(i, 72) + '\n';//生成数据保存到message_
     }
   }
 
@@ -53,7 +54,7 @@ class TestServer
              conn->peerAddress().toIpPort().c_str());
 
       conn->setTcpNoDelay(true);
-      conn->send(message_);
+      conn->send(message_);//一旦客户端连接过来，就发送这些数据
     }
     else
     {
@@ -75,6 +76,7 @@ class TestServer
     conn->send(msg);
   }
 
+  // 一旦onConnection::conn->send(message_);的所有数据都拷贝到内核发送缓冲区了，接着会调用onWriteComplete()
   void onWriteComplete(const TcpConnectionPtr& conn)
   {
     conn->send(message_);
@@ -86,7 +88,7 @@ class TestServer
   muduo::string message_;
 };
 
-
+// 模拟大流量的程序
 int main()
 {
   printf("main(): pid = %d\n", getpid());

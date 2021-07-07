@@ -22,6 +22,7 @@ namespace net
 class ProcessInspector : boost::noncopyable
 {
  public:
+//  传递一个Inspector对象
   void registerCommands(Inspector* ins);	// 注册命令接口
 
  private:

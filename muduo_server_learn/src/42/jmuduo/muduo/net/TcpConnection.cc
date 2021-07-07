@@ -329,7 +329,7 @@ void TcpConnection::handleWrite()
     if (n > 0)
     {
       outputBuffer_.retrieve(n);
-      if (outputBuffer_.readableBytes() == 0)	 // 发送缓冲区已清空
+      if (outputBuffer_.readableBytes() == 0)	 // 应用层的发送缓冲区已清空
       {
         channel_->disableWriting();		// 停止关注POLLOUT事件，以免出现busy loop
         if (writeCompleteCallback_)		// 回调writeCompleteCallback_

@@ -31,10 +31,10 @@ void TimeServer::onConnection(const muduo::net::TcpConnectionPtr& conn)
            << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
-    time_t now = ::time(NULL);
-    int32_t be32 = sockets::hostToNetwork32(static_cast<int32_t>(now));
-    conn->send(&be32, sizeof be32);
-    conn->shutdown();
+    time_t now = ::time(NULL);//连接到达，就获取当前事件的s数
+    int32_t be32 = sockets::hostToNetwork32(static_cast<int32_t>(now));//转换成网络字节序
+    conn->send(&be32, sizeof be32);//发哦那个给客户端
+    conn->shutdown();//仅关闭写入这一半
   }
 }
 

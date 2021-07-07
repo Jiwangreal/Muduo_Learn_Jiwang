@@ -57,6 +57,7 @@ message(STATUS "CXX_FLAGS = " ${CMAKE_CXX_FLAGS} " " ${CMAKE_CXX_FLAGS_${BUILD_T
 add_subdirectory(muduo/base)
 add_subdirectory(muduo/net)
 
+# ÐÂÔö£º:.,+7s/^#//
 if(NOT CMAKE_BUILD_NO_EXAMPLES)
   add_subdirectory(examples)
 else()

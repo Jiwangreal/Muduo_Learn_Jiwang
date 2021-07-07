@@ -20,15 +20,16 @@ namespace muduo
 namespace net
 {
 
+// 协议解析类
 class HttpContext : public muduo::copyable
 {
  public:
   enum HttpRequestParseState
   {
-    kExpectRequestLine,
-    kExpectHeaders,
-    kExpectBody,
-    kGotAll,
+    kExpectRequestLine,//当前处于解析请求行的状态
+    kExpectHeaders,//正处于解析头部信息的状态
+    kExpectBody,//正处于解析实体的状态
+    kGotAll,//全部都解析完毕
   };
 
   HttpContext()
@@ -38,6 +39,7 @@ class HttpContext : public muduo::copyable
 
   // default copy-ctor, dtor and assignment are fine
 
+  // 将状态设置未kExpectRequestLine
   bool expectRequestLine() const
   { return state_ == kExpectRequestLine; }
 
@@ -50,9 +52,12 @@ class HttpContext : public muduo::copyable
   bool gotAll() const
   { return state_ == kGotAll; }
 
+  // 下个期望接收的状态是kExpectHeaders
   void receiveRequestLine()
   { state_ = kExpectHeaders; }
 
+  // 一旦header接收了，下一个期望接收的状态就是kGotAll
+  // 当前没有处理带有实体body的请求
   void receiveHeaders()
   { state_ = kGotAll; }  // FIXME
 
@@ -60,8 +65,8 @@ class HttpContext : public muduo::copyable
   void reset()
   {
     state_ = kExpectRequestLine;
-    HttpRequest dummy;
-    request_.swap(dummy);
+    HttpRequest dummy;//dummy虚的，假的意思
+    request_.swap(dummy);//将当前对象置空
   }
 
   const HttpRequest& request() const
@@ -73,6 +78,7 @@ class HttpContext : public muduo::copyable
  private:
   HttpRequestParseState state_;		// 请求解析状态
   HttpRequest request_;				// http请求
+                            // 对该http请求进行解析
 };
 
 }

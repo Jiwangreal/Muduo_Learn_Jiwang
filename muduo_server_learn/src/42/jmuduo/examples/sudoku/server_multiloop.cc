@@ -31,6 +31,11 @@ class SudokuServer
         boost::bind(&SudokuServer::onConnection, this, _1));
     server_.setMessageCallback(
         boost::bind(&SudokuServer::onMessage, this, _1, _2, _3));
+    // 比（1）reactor（一个IO线程）多了该参数
+    /*
+    main reactor，负责listenfd，当他产生可读事件的时候，调用accept
+    sub reactor，负责connfd，当已连接socket到来时，调用OnMessages
+    */
     server_.setThreadNum(numThreads);
   }
 
@@ -129,6 +134,7 @@ int main(int argc, char* argv[])
   int numThreads = 0;
   if (argc > 1)
   {
+    // IO线程的数目
     numThreads = atoi(argv[1]);
   }
   EventLoop loop;

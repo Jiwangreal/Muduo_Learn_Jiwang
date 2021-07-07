@@ -139,6 +139,7 @@ void TcpConnection::sendInLoop(const StringPiece& message)
   sendInLoop(message.data(), message.size());
 }
 
+// 要发送的数据data，要发送数据的长度len
 void TcpConnection::sendInLoop(const void* data, size_t len)
 {
   /*
@@ -163,13 +164,13 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
     if (nwrote >= 0)
     {
       remaining = len - nwrote;
-	  // 写完了，回调writeCompleteCallback_
+	  // remaining == 0 表示写完了，回调writeCompleteCallback_
       if (remaining == 0 && writeCompleteCallback_)
       {
         loop_->queueInLoop(boost::bind(writeCompleteCallback_, shared_from_this()));
       }
     }
-    else // nwrote < 0
+    else // nwrote < 0，出错处理
     {
       nwrote = 0;
       if (errno != EWOULDBLOCK)
@@ -188,20 +189,24 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   if (!error && remaining > 0)
   {
     LOG_TRACE << "I am going to write more data";
-    size_t oldLen = outputBuffer_.readableBytes();
+    size_t oldLen = outputBuffer_.readableBytes();//目前outputBuffer_的数据
 	// 如果超过highWaterMark_（高水位标），回调highWaterMarkCallback_
     if (oldLen + remaining >= highWaterMark_
         && oldLen < highWaterMark_
         && highWaterMarkCallback_)
     {
+      // 回调highWaterMarkCallback_的时候，可能会将连接给断开
       loop_->queueInLoop(boost::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining));
     }
+    // 前面的nwrote的数据已经发送成功了，后面的(data)+nwrote数据还没有发送
     outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining);
+
+    // 接着需要关注POLLOUT事件
     if (!channel_->isWriting())
     {
       channel_->enableWriting();		// 关注POLLOUT事件
-    }
-  }
+    }                               //当对等方接收了数据，TCP的滑动窗口划过去了，此时内核中的发送缓冲区有空间了，会触发POLLOUT事件
+  }                                 //会回调boost::bind(&TcpConnection::handleWrite, this));
 }
 
 void TcpConnection::shutdown()
@@ -238,8 +243,9 @@ void TcpConnection::connectEstablished()
   LOG_TRACE << "[3] usecount=" << shared_from_this().use_count();
   channel_->tie(shared_from_this());
   channel_->enableReading();	// TcpConnection所对应的通道加入到Poller关注
+                              // 关注channel_的可读事件
 
-  connectionCallback_(shared_from_this());
+  connectionCallback_(shared_from_this());//回调connectionCallback_
   LOG_TRACE << "[4] usecount=" << shared_from_this().use_count();
 }
 
@@ -321,6 +327,7 @@ void TcpConnection::handleRead(Timestamp receiveTime)
 void TcpConnection::handleWrite()
 {
   loop_->assertInLoopThread();
+  // 若此时正处于关注POLLOUT事件
   if (channel_->isWriting())
   {
     ssize_t n = sockets::write(channel_->fd(),
@@ -329,7 +336,7 @@ void TcpConnection::handleWrite()
     if (n > 0)
     {
       outputBuffer_.retrieve(n);
-      if (outputBuffer_.readableBytes() == 0)	 // 发送缓冲区已清空
+      if (outputBuffer_.readableBytes() == 0)	 // 应用层的发送缓冲区已清空
       {
         channel_->disableWriting();		// 停止关注POLLOUT事件，以免出现busy loop
         if (writeCompleteCallback_)		// 回调writeCompleteCallback_
@@ -337,6 +344,8 @@ void TcpConnection::handleWrite()
           // 应用层发送缓冲区被清空，就回调用writeCompleteCallback_
           loop_->queueInLoop(boost::bind(writeCompleteCallback_, shared_from_this()));
         }
+
+        // 上层应用调用了shutdown()，说明要关闭连接， 此时就要在数据发送完的时候关闭连接
         if (state_ == kDisconnecting)	// 发送缓冲区已清空并且连接状态是kDisconnecting, 要关闭连接
         {
           shutdownInLoop();		// 关闭连接

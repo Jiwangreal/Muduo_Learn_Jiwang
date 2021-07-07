@@ -43,6 +43,7 @@ Connector::~Connector()
 void Connector::start()
 {
   connect_ = true;
+  // 在lopp_所对应的IO线程中执行startInLoop
   loop_->runInLoop(boost::bind(&Connector::startInLoop, this)); // FIXME: unsafe
 }
 
@@ -60,6 +61,8 @@ void Connector::startInLoop()
   }
 }
 
+// 可以跨线程调用
+// 另外一个线程调用stop()，使得connect_置为false
 void Connector::stop()
 {
   connect_ = false;
@@ -70,17 +73,20 @@ void Connector::stop()
 void Connector::stopInLoop()
 {
   loop_->assertInLoopThread();
+  // kConnecting表示正处于连接的状态，还没有连接成功
   if (state_ == kConnecting)
   {
     setState(kDisconnected);
     int sockfd = removeAndResetChannel();	// 将通道从poller中移除关注，并将channel置空
-    retry(sockfd);		// 这里并非要重连，只是调用sockets::close(sockfd);
+    retry(sockfd);		// 这里并非要重连，只是调用sockets::close(sockfd);因为此时connect_ = false;不可能再发起连接了
   }
 }
 
 void Connector::connect()
 {
   int sockfd = sockets::createNonblockingOrDie();	// 创建非阻塞套接字
+
+  // 调用connect()发起连接
   int ret = sockets::connect(sockfd, serverAddr_.getSockAddrInet());
   int savedErrno = (ret == 0) ? 0 : errno;
   switch (savedErrno)
@@ -98,7 +104,7 @@ void Connector::connect()
     case ECONNREFUSED:
     case ENETUNREACH:
       retry(sockfd);		// 重连
-      break;
+      break;            //表示重连，没有连接成功
 
     case EACCES:
     case EPERM:
@@ -124,7 +130,7 @@ void Connector::restart()
 {
   loop_->assertInLoopThread();
   setState(kDisconnected);
-  retryDelayMs_ = kInitRetryDelayMs;
+  retryDelayMs_ = kInitRetryDelayMs;//设置初始的重连时间
   connect_ = true;
   startInLoop();
 }
@@ -133,11 +139,14 @@ void Connector::connecting(int sockfd)
 {
   setState(kConnecting);
   assert(!channel_);
-  // Channel与sockfd关联
+  // 创建Channel对象，Channel与sockfd关联
   channel_.reset(new Channel(loop_, sockfd));
+
   // 设置可写回调函数，这时候如果socket没有错误，sockfd就处于可写状态
+  // 一旦连接成功就会回调handleWrite，它就处于可写状态
   channel_->setWriteCallback(
       boost::bind(&Connector::handleWrite, this)); // FIXME: unsafe
+
   // 设置错误回调函数
   channel_->setErrorCallback(
       boost::bind(&Connector::handleError, this)); // FIXME: unsafe
@@ -153,7 +162,10 @@ int Connector::removeAndResetChannel()
   channel_->remove();			// 从poller移除关注
   int sockfd = channel_->fd();
   // Can't reset channel_ here, because we are inside Channel::handleEvent
-  // 不能在这里重置channel_，因为正在调用Channel::handleEvent
+  
+  // 不能在这里重置channel_，因为正在调用Channel::handleEvent，从而调用了handleWrite()，从而调用了removeAndResetChannel()
+  // 若此时重置channel_,此时调用channel_的函数还没有返回。所以重置channel_不能在removeAndResetChannel()这个函数中执行
+  // 将resetChannel加入到IO线程的队列中，保证跳出这个removeAndResetChannel()函数再执行
   loop_->queueInLoop(boost::bind(&Connector::resetChannel, this)); // FIXME: unsafe
   return sockfd;
 }
@@ -170,6 +182,7 @@ void Connector::handleWrite()
 
   if (state_ == kConnecting)
   {
+    // 连接成功了，该channel_就没有用了，就不需要关注他的可写事件了
     int sockfd = removeAndResetChannel();	// 从poller中移除关注，并将channel置空
     // socket可写并不意味着连接一定建立成功
     // 还需要用getsockopt(sockfd, SOL_SOCKET, SO_ERROR, ...)再次确认一下。
@@ -210,13 +223,13 @@ void Connector::handleError()
   LOG_ERROR << "Connector::handleError";
   assert(state_ == kConnecting);
 
-  int sockfd = removeAndResetChannel();		// 从poller中移除关注，并将channel置空
+  int sockfd = removeAndResetChannel();		// 将channel从poller中移除关注，并将channel置空
   int err = sockets::getSocketError(sockfd);
   LOG_TRACE << "SO_ERROR = " << err << " " << strerror_tl(err);
   retry(sockfd);
 }
 
-// 采用back-off策略重连，即重连时间逐渐延长，0.5s, 1s, 2s, ...直至30s
+// 采用back-off策略（退避策略）重连，即重连时间逐渐延长，0.5s, 1s, 2s, ...直至30s
 void Connector::retry(int sockfd)
 {
   sockets::close(sockfd);
@@ -225,9 +238,12 @@ void Connector::retry(int sockfd)
   {
     LOG_INFO << "Connector::retry - Retry connecting to " << serverAddr_.toIpPort()
              << " in " << retryDelayMs_ << " milliseconds. ";
-    // 注册一个定时操作，重连
+    // 注册一个定时操作，返回一个定时器，重连
+    // retryDelayMs_/1000.0=毫秒/1000=秒
+    // startInLoop再次发起重连
     loop_->runAfter(retryDelayMs_/1000.0,
                     boost::bind(&Connector::startInLoop, shared_from_this()));
+    // 下一次的重连时间retryDelayMs_
     retryDelayMs_ = std::min(retryDelayMs_ * 2, kMaxRetryDelayMs);
   }
   else

@@ -18,6 +18,7 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// （1）reactor（一个IO线程）
 class SudokuServer
 {
  public:
@@ -49,13 +50,13 @@ class SudokuServer
   {
     LOG_DEBUG << conn->name();
     size_t len = buf->readableBytes();
-    while (len >= kCells + 2)
+    while (len >= kCells + 2)//说明可能是一条完整的消息
     {
-      const char* crlf = buf->findCRLF();
+      const char* crlf = buf->findCRLF();//查找是否有\r\n
       if (crlf)
       {
         string request(buf->peek(), crlf);
-        buf->retrieveUntil(crlf + 2);
+        buf->retrieveUntil(crlf + 2);//将\r\n一并取出
         len = buf->readableBytes();
         if (!processRequest(conn, request))
         {
@@ -63,7 +64,7 @@ class SudokuServer
           conn->shutdown();
           break;
         }
-      }
+      }//没找到\r\n，但是长度>100，那么肯定是id+":"过长了
       else if (len > 100) // id + ":" + kCells + "\r\n"
       {
         conn->send("Id too long!\r\n");
@@ -84,9 +85,12 @@ class SudokuServer
     bool goodRequest = true;
 
     string::const_iterator colon = find(request.begin(), request.end(), ':');
+    // 找到:
     if (colon != request.end())
     {
+      //取出id
       id.assign(request.begin(), colon);
+      // 取出求解数字
       puzzle.assign(colon+1, request.end());
     }
     else
@@ -97,7 +101,7 @@ class SudokuServer
     if (puzzle.size() == implicit_cast<size_t>(kCells))
     {
       LOG_DEBUG << conn->name();
-      string result = solveSudoku(puzzle);
+      string result = solveSudoku(puzzle);//求解
       if (id.empty())
       {
         conn->send(result+"\r\n");
@@ -119,6 +123,10 @@ class SudokuServer
   Timestamp startTime_;
 };
 
+/*
+reactor只有一个IO线程
+这个reactor（IO线程）既要负责listenfd的可读事件（然后调用accept接收一个新的连接），也要负责connfd的可读可写事件
+*/
 int main(int argc, char* argv[])
 {
   LOG_INFO << "pid = " << getpid() << ", tid = " << CurrentThread::tid();

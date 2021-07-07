@@ -16,6 +16,7 @@ using namespace muduo::net;
 
 void ProcessInspector::registerCommands(Inspector* ins)
 {
+  // (模块名称，模块底下的命令，命令所对应的回调函数，帮助信息)
   ins->add("proc", "pid", ProcessInspector::pid, "print pid");
   ins->add("proc", "status", ProcessInspector::procStatus, "print /proc/self/status");
   ins->add("proc", "opened_files", ProcessInspector::openedFiles, "count /proc/self/fd");
@@ -34,6 +35,7 @@ string ProcessInspector::procStatus(HttpRequest::Method, const Inspector::ArgLis
   return ProcessInfo::procStatus();
 }
 
+// 打开的fd的个数
 string ProcessInspector::openedFiles(HttpRequest::Method, const Inspector::ArgList&)
 {
   char buf[32];
@@ -43,7 +45,7 @@ string ProcessInspector::openedFiles(HttpRequest::Method, const Inspector::ArgLi
 
 string ProcessInspector::threads(HttpRequest::Method, const Inspector::ArgList&)
 {
-  std::vector<pid_t> threads = ProcessInfo::threads();
+  std::vector<pid_t> threads = ProcessInfo::threads();//把当前有哪些任务，哪些线程返回回来
   string result;
   for (size_t i = 0; i < threads.size(); ++i)
   {

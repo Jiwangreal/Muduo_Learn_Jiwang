@@ -24,8 +24,8 @@ class TestServer
 
     message1_.resize(100);
     message2_.resize(200);
-    std::fill(message1_.begin(), message1_.end(), 'A');
-    std::fill(message2_.begin(), message2_.end(), 'B');
+    std::fill(message1_.begin(), message1_.end(), 'A');//message1_有100个a
+    std::fill(message2_.begin(), message2_.end(), 'B');//message1_有200个b
   }
 
   void start()
@@ -41,9 +41,11 @@ class TestServer
       printf("onConnection(): new connection [%s] from %s\n",
              conn->name().c_str(),
              conn->peerAddress().toIpPort().c_str());
+
+      // 一旦客户端连接过来，就发送2条消息给客户端
       conn->send(message1_);
       conn->send(message2_);
-      conn->shutdown();
+      conn->shutdown();//直接shutdown()可以保证这2条消息能够被客户端接收
     }
     else
     {

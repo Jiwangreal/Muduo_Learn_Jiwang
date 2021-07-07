@@ -101,6 +101,7 @@ class SudokuServer
 
     if (puzzle.size() == implicit_cast<size_t>(kCells))
     {
+      // 计算任务让给计算线程池来处理，而不是IO线程来处理
       threadPool_.run(boost::bind(&solve, conn, puzzle, id));
     }
     else
@@ -118,6 +119,7 @@ class SudokuServer
     string result = solveSudoku(puzzle);
     if (id.empty())
     {
+      // send()是通过TcpConnection所属的IO线程来发送，而不是计算线程池所对应的线程来发送的
       conn->send(result+"\r\n");
     }
     else
@@ -128,17 +130,25 @@ class SudokuServer
 
   EventLoop* loop_;
   TcpServer server_;
-  ThreadPool threadPool_;
+  ThreadPool threadPool_;//计算线程池
   int numThreads_;
   Timestamp startTime_;
 };
 
+/*
+sudoku求解服务器，既是IO密集型，又是计算密集型的一个服务
+（3）one loop per thread + thread pool （多个IO线程 + 计算线程池），这里只有一个IO线程+计算线程池
+
+sudoku计算的代码放到计算线程池中处理的原因：
+计算时间如果比较久，就会使得IO线程阻塞，IO线程很快就用尽了，就不能处理大量的并发连接了。
+*/
 int main(int argc, char* argv[])
 {
   LOG_INFO << "pid = " << getpid() << ", tid = " << CurrentThread::tid();
   int numThreads = 0;
   if (argc > 1)
   {
+    // 计算线程池的线程个数
     numThreads = atoi(argv[1]);
   }
   EventLoop loop;

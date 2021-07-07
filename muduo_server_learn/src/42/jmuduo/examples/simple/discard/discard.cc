@@ -34,6 +34,7 @@ void DiscardServer::onMessage(const TcpConnectionPtr& conn,
                               Buffer* buf,
                               Timestamp time)
 {
+  // 仅将客户端的所有消息取出来，并不响应
   string msg(buf->retrieveAllAsString());
   LOG_INFO << conn->name() << " discards " << msg.size()
            << " bytes received at " << time.toString();

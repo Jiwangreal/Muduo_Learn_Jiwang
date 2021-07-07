@@ -14,6 +14,7 @@ extern char favicon[555];
 bool benchmark = false;
 
 // 实际的请求处理
+// 当一个http请求过来后，已经解析完毕，放到了req中
 void onRequest(const HttpRequest& req, HttpResponse* resp)
 {
   std::cout << "Headers " << req.methodString() << " " << req.path() << std::endl;
@@ -28,16 +29,17 @@ void onRequest(const HttpRequest& req, HttpResponse* resp)
     }
   }
 
+  //若请求的地址是/
   if (req.path() == "/")
   {
-    resp->setStatusCode(HttpResponse::k200Ok);
+    resp->setStatusCode(HttpResponse::k200Ok);//即：HTTP/1.1 200 OK
     resp->setStatusMessage("OK");
     resp->setContentType("text/html");
     resp->addHeader("Server", "Muduo");
     string now = Timestamp::now().toFormattedString();
     resp->setBody("<html><head><title>This is title</title></head>"
         "<body><h1>Hello</h1>Now is " + now +
-        "</body></html>");
+        "</body></html>");//http页面
   }
   else if (req.path() == "/favicon.ico")
   {
@@ -69,11 +71,11 @@ int main(int argc, char* argv[])
   {
     benchmark = true;
     Logger::setLogLevel(Logger::WARN);
-    numThreads = atoi(argv[1]);
+    numThreads = atoi(argv[1]);//最关键，该程序支持多线程
   }
   EventLoop loop;
-  HttpServer server(&loop, InetAddress(8000), "dummy");
-  server.setHttpCallback(onRequest);
+  HttpServer server(&loop, InetAddress(8000), "dummy");//http服务的端口号是8000
+  server.setHttpCallback(onRequest);//实际请求处理回调函数
   server.setThreadNum(numThreads);
   server.start();
   loop.loop();

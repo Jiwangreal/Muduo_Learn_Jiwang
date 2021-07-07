@@ -45,7 +45,7 @@ class ChargenClient : boost::noncopyable
 
   void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp receiveTime)
   {
-    buf->retrieveAll();
+    buf->retrieveAll();//收到数据仅是取回，并没有打印到标准输出设备上来，而使用nc测试，是打印出来了
   }
 
   EventLoop* loop_;

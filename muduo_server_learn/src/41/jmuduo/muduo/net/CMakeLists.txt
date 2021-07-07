@@ -40,7 +40,9 @@ set(HEADERS
   )
 install(FILES ${HEADERS} DESTINATION include/muduo/net)
 
+# 新增：添加一个http的子文件夹
 add_subdirectory(http)
+
 add_subdirectory(inspect)
 #
 if(NOT CMAKE_BUILD_NO_EXAMPLES)

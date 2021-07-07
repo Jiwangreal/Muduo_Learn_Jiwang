@@ -68,9 +68,12 @@ class TcpConnection : boost::noncopyable,
   void setContext(const boost::any& context)
   { context_ = context; }
 
+  // const成员函数是不会更改context_对象的
+  // 返回const，说明外部不会去更改context_对象
   const boost::any& getContext() const
   { return context_; }
 
+  // mutable含义是get之后，可以更改context_
   boost::any* getMutableContext()
   { return &context_; }
 
@@ -119,14 +122,36 @@ class TcpConnection : boost::noncopyable,
   InetAddress peerAddr_;
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
+
+
+ /*
+ 上层应用发送数据，只管调用conn->send()来发送，只有网络库知道将数据拷贝到了内核缓冲区，拷贝完毕后，会通过writeCompleteCallback_
+ 通知上层应用程序，以便上层应用程序发送更多的数据；
+  通常大流量的应用程序才需要关注writeCompleteCallback_；
+  （1）大流量的应用程序
+  不断生成数据，然后发送conn->send();
+  如果对等方接收不及时，受到通告窗口的控制，内核发送缓冲区不足，这个时候，就会将用户数据添加到应用层发送缓冲区(output buffer)，可能会
+  撑爆output buffer；
+
+  解决办法是：调整发送频率：只需要关注writeCompleteCallback_
+  当所有的数据都拷贝到内核缓冲区的时候，上层的应用程序通过writeCompleteCallback_得到通知，此时再发送数据，能够保证所有的数据都发送完再继续发送；
+
+  （2）小流量的应用程序
+ 不需要关注writeCompleteCallback_
+ */
   WriteCompleteCallback writeCompleteCallback_;		// 数据发送完毕回调函数，即所有的用户数据都已拷贝到内核缓冲区时回调该函数
-													// outputBuffer_被清空也会回调该函数，可以理解为低水位标回调函数
+													// outputBuffer_被清空也会回调该函数(意味着所有的数据都拷贝到内核缓冲区了)，可以理解为低水位标回调函数（即：outputBuffer_被清空，没有数据）
   HighWaterMarkCallback highWaterMarkCallback_;	    // 高水位标回调函数
+                                                    //outputBuffer_撑到一定程度的时候最好调用下，这意味着对等方接收不及时导致outputBuffer_不断增大，
+                                                    // 很可能没有关注writeCompleteCallback_的时候会出现该情况
+                                                    // 不断增大，此时可以在highWaterMarkCallback_中可以断开与对等方的连接，你面内存不断的增大撑爆OS
+
   CloseCallback closeCallback_;
   size_t highWaterMark_;		// 高水位标
   Buffer inputBuffer_;			// 应用层接收缓冲区
   Buffer outputBuffer_;			// 应用层发送缓冲区
-  boost::any context_;			// 绑定一个未知类型的上下文对象
+  boost::any context_;			// 表示连接对象可以绑定一个未知类型的上下文对象
+                            // 提供一个接口，上层的应用程序可以绑定一个未知类型的上下文对象
 };
 
 typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;

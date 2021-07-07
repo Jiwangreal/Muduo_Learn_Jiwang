@@ -45,6 +45,9 @@ class TcpClient : boost::noncopyable
   }
 
   bool retry() const;
+
+  //表示连接已经建立成功了，但由于某种原因断开了，是否进行自动重连
+  /*与void Connector::retry(int sockfd)重连的区别是：这是连接未成功的重连*/
   void enableRetry() { retry_ = true; }
 
   /// Set connection callback.
@@ -75,6 +78,7 @@ class TcpClient : boost::noncopyable
   MessageCallback messageCallback_;				// 消息到来回调函数
   WriteCompleteCallback writeCompleteCallback_;	// 数据发送完毕回调函数
   bool retry_;   // 重连，是指连接建立之后又断开的时候是否重连
+                // 与Connector的重连是不一样的
   bool connect_; // atomic
   // always in loop thread
   int nextConnId_;			// name_ + nextConnId_用于标识一个连接

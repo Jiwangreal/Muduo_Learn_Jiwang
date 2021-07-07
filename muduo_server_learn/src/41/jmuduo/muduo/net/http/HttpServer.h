@@ -26,6 +26,7 @@ class HttpResponse;
 /// It is not a fully HTTP 1.1 compliant server, but provides minimum features
 /// that can communicate with HttpClient and Web browser.
 /// It is synchronous, just like Java Servlet.
+
 class HttpServer : boost::noncopyable
 {
  public:
@@ -44,6 +45,7 @@ class HttpServer : boost::noncopyable
     httpCallback_ = cb;
   }
 
+  // 还支持多线程
   void setThreadNum(int numThreads)
   {
     server_.setThreadNum(numThreads);
@@ -53,12 +55,17 @@ class HttpServer : boost::noncopyable
 
  private:
   void onConnection(const TcpConnectionPtr& conn);
+  // 当服务端收到客户端发来的http客户端请求，首先回调onMessage，这是一个TCP服务器
   void onMessage(const TcpConnectionPtr& conn,
                  Buffer* buf,
                  Timestamp receiveTime);
+  //  在onMessage()回调onRequest()，在onRequest()回调用户的httpCallback_
   void onRequest(const TcpConnectionPtr&, const HttpRequest&);
 
+  //HttpServer服务器也是一个tcp服务器，在应用层使用http协议，在传输层使用tcp协议
+  // 所以包含TcpServer server_;
   TcpServer server_;
+  // 使用基于对象的编程思想，并不是去继承HttpServer来实现自己的http服务器，而是包含一个HttpServer对象
   HttpCallback httpCallback_;	// 在处理http请求（即调用onRequest）的过程中回调此函数，对请求进行具体的处理
 };
 

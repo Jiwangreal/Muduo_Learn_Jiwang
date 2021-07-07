@@ -98,6 +98,8 @@ class TcpServer : boost::noncopyable
   const string name_;			// 服务名
   boost::scoped_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
   boost::scoped_ptr<EventLoopThreadPool> threadPool_;
+
+  // 注册回调函数都是通过TcpServer来注册的
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;		// 数据发送完毕，会回调此函数

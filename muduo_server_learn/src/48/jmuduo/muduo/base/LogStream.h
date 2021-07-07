@@ -20,6 +20,7 @@ const int kSmallBuffer = 4000;
 const int kLargeBuffer = 4000*1000;
 
 // SIZE为非类型参数
+// 是一个模板
 template<int SIZE>
 class FixedBuffer : boost::noncopyable
 {

@@ -31,8 +31,8 @@ void DaytimeServer::onConnection(const TcpConnectionPtr& conn)
            << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
-    conn->send(Timestamp::now().toFormattedString() + "\n");
-    conn->shutdown();
+    conn->send(Timestamp::now().toFormattedString() + "\n");//一旦发送完毕，则shutdown()
+    conn->shutdown();//内部实现，只是关闭写入的这一半
   }
 }
 

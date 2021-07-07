@@ -210,23 +210,37 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   */
 }
 
+// 不可以跨线程调用
+/*
+若oupt Buffer中有数据还没有发完，服务器端的连接状态更改为kDisconnecting，是并没有关闭连接的；
+若服务器端主动断开与客户端的连接（close()或者shutdown()），这意味着客户端read()返回为0，接着客户端就close(conn)；
+接着服务器端会收到2个事件revents：POLLHUP和POLLIN；
+
+正常情况下，客户端关闭连接，服务器端只有收到POLLIN事件
+可以在37\jmuduo\muduo\net\Channel.cc的handleEventWithGuard中进行验证
+
+*/
 void TcpConnection::shutdown()
 {
   // FIXME: use compare and swap
-  if (state_ == kConnected)
+  if (state_ == kConnected)//当前处于连接的状态，这里多线程可能是访问的，可以写成原子性操作
   {
-    setState(kDisconnecting);
+    setState(kDisconnecting);//设置为正在断开连接的状态
     // FIXME: shared_from_this()?
-    loop_->runInLoop(boost::bind(&TcpConnection::shutdownInLoop, this));
-  }
+    loop_->runInLoop(boost::bind(&TcpConnection::shutdownInLoop, this));//在这个IO线程中调用shutdownInLoop
+  }                                                                     //this指针可以更改为shared_from_this()
 }
 
 void TcpConnection::shutdownInLoop()
 {
+  // 断言在IO线程
   loop_->assertInLoopThread();
+
+  // 不再关注POLLOUT事件
   if (!channel_->isWriting())
   {
     // we are not writing
+    // 关闭写的一半
     socket_->shutdownWrite();
   }
 }

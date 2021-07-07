@@ -83,7 +83,11 @@ void TcpServer::start()
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
-  // 按照轮叫的方式选择一个EventLoop
+  // 按照轮叫roundbin的方式选择一个EventLoop（来一个连接，就选择下一个EventLoop，这样就可以让多个连接分配给若干个EventLoop来处理）
+  // 而每个EventLoop属于一个IO线程，也就意味着，多个连接分配给若干个IO线程来处理
+  /*
+  当连接到来时，会从IO线程池中获得一个EventLoop对象
+  */
   EventLoop* ioLoop = threadPool_->getNextLoop();
   char buf[32];
   snprintf(buf, sizeof buf, ":%s#%d", hostport_.c_str(), nextConnId_);
@@ -101,7 +105,9 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
                                           sockfd,
                                           localAddr,
                                           peerAddr));*/
-
+  // 让生成的TcpConnection对象与EventLoop对象关联起来，一个EventLoop属于一个IO线程
+  // 这就意味着TcpConnection连接的处理与ioLoop所属的IO线程就对应起来了，当TcpConnection
+  // 连接到来时，应该分配给ioLoop所属的IO线程来处理
   TcpConnectionPtr conn(new TcpConnection(ioLoop,
                                           connName,
                                           sockfd,

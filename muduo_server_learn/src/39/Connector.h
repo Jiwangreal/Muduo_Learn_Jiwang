@@ -48,7 +48,9 @@ class Connector : boost::noncopyable,
  private:
   enum States { kDisconnected, kConnecting, kConnected };
   static const int kMaxRetryDelayMs = 30*1000;			// 30秒，最大重连延迟时间
+                                                    // 最大重连延迟时间
   static const int kInitRetryDelayMs = 500;				// 0.5秒，初始状态，连接不上，0.5秒后重连
+                                                  //初始重连时间
 
   void setState(States s) { state_ = s; }
   void startInLoop();
@@ -63,7 +65,7 @@ class Connector : boost::noncopyable,
 
   EventLoop* loop_;			// 所属EventLoop
   InetAddress serverAddr_;	// 服务器端地址
-  bool connect_; // atomic
+  bool connect_; // atomic，是否连接
   States state_;  // FIXME: use atomic variable
   boost::scoped_ptr<Channel> channel_;	// Connector所对应的Channel
   NewConnectionCallback newConnectionCallback_;		// 连接成功回调函数，

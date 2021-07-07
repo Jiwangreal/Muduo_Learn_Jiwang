@@ -22,9 +22,11 @@ namespace net
 {
 
 class Buffer;
+// 响应类
 class HttpResponse : public muduo::copyable
 {
  public:
+//  响应的状态码，枚举类型，实际上还有很多
   enum HttpStatusCode
   {
     kUnknown,
@@ -54,7 +56,7 @@ class HttpResponse : public muduo::copyable
 
   // 设置文档媒体类型（MIME）
   void setContentType(const string& contentType)
-  { addHeader("Content-Type", contentType); }
+  { addHeader("Content-Type", contentType); }//添加头部信息
 
   // FIXME: replace string with StringPiece
   void addHeader(const string& key, const string& value)
@@ -63,14 +65,15 @@ class HttpResponse : public muduo::copyable
   void setBody(const string& body)
   { body_ = body; }
 
-  void appendToBuffer(Buffer* output) const;	// 将HttpResponse添加到Buffer
+  void appendToBuffer(Buffer* output) const;	// 将HttpResponse对象添加到Buffer
+                                              //将HttpResponse对象打包成字符串以便发送给客户端
 
  private:
   std::map<string, string> headers_;	// header列表
   HttpStatusCode statusCode_;			// 状态响应码
   // FIXME: add http version
   string statusMessage_;				// 状态响应码对应的文本信息
-  bool closeConnection_;				// 是否关闭连接
+  bool closeConnection_;				// 是否关闭连接，短连接的话，要关闭连接的
   string body_;							// 实体
 };
 

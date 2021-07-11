@@ -11,6 +11,7 @@ int main(int argc, char* argv[])
   LOG_INFO << "pid = " << getpid();
   EventLoop loop;
   InetAddress listenAddr(2007);
+  // 限制最大连接数
   int maxConnections = 2;
   if (argc > 1)
   {

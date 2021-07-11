@@ -34,7 +34,7 @@ void EchoServer::onConnection(const TcpConnectionPtr& conn)
 
   if (conn->connected())
   {
-    ++numConnected_; // 当前连接数加1
+    ++numConnected_; // 连接到来时，当前连接数加1
     if (numConnected_ > kMaxConnections_)
     {
       conn->send("too many connections\r\n", strlen("too many connections\r\n"));
@@ -43,7 +43,7 @@ void EchoServer::onConnection(const TcpConnectionPtr& conn)
   }
   else
   {
-    --numConnected_; // 当前连接数减1
+    --numConnected_; // 连接到来时，当前连接数减1
   }
   LOG_INFO << "numConnected = " << numConnected_;
 }

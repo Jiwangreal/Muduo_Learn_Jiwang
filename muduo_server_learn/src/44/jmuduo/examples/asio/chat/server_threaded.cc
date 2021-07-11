@@ -76,7 +76,7 @@ class ChatServer : boost::noncopyable
   EventLoop* loop_;
   TcpServer server_;
   LengthHeaderCodec codec_;
-  MutexLock mutex_;
+  MutexLock mutex_;//保护connections_
   ConnectionList connections_;		// 连接列表
 };
 
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     ChatServer server(&loop, serverAddr);
     if (argc > 2)
     {
-      server.setThreadNum(atoi(argv[2]));
+      server.setThreadNum(atoi(argv[2]));//多线程
     }
     server.start();
     loop.loop();

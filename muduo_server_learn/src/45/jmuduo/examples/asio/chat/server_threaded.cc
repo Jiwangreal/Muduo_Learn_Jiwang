@@ -61,7 +61,7 @@ class ChatServer : boost::noncopyable
                        const string& message,
                        Timestamp)
   {
-    // 有多个IO线程，因而这里的connections_需要用mutex保护
+    // 有多个IO线程，因而这里的connections_需要用mutex保护，一直保护到send()发送
     MutexLockGuard lock(mutex_);
     // 转发消息给所有客户端
     for (ConnectionList::iterator it = connections_.begin();

@@ -36,7 +36,7 @@ int main(void)
 	struct sockaddr_in localaddr;
 	socklen_t addrlen = sizeof(localaddr);
 	if (getsockname(sock, (struct sockaddr*)&localaddr, &addrlen) < 0)
-	ERR_EXIT("getsockname");
+		ERR_EXIT("getsockname");
 
 	std::cout<<"ip="<<inet_ntoa(localaddr.sin_addr)<<
 		" port="<<ntohs(localaddr.sin_port)<<std::endl;

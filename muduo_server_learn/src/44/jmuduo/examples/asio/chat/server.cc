@@ -20,10 +20,12 @@ class ChatServer : boost::noncopyable
              const InetAddress& listenAddr)
   : loop_(loop),
     server_(loop, listenAddr, "ChatServer"),
+    // 编解码绑定一个codec_的onStringMessage，即 达到一条完整的消息，会回调onStringMessage
     codec_(boost::bind(&ChatServer::onStringMessage, this, _1, _2, _3))
   {
     server_.setConnectionCallback(
         boost::bind(&ChatServer::onConnection, this, _1));
+    // 消息到来，回调：LengthHeaderCodec::onMessage，当客户端C1向服务端发送hello消息，会回调onMessage
     server_.setMessageCallback(
         boost::bind(&LengthHeaderCodec::onMessage, &codec_, _1, _2, _3));
   }
@@ -34,6 +36,7 @@ class ChatServer : boost::noncopyable
   }
 
  private:
+//  这是单线程IO，多个客户端连接过来，都是调用同一个onConnection
   void onConnection(const TcpConnectionPtr& conn)
   {
     LOG_INFO << conn->localAddress().toIpPort() << " -> "
@@ -51,6 +54,7 @@ class ChatServer : boost::noncopyable
     }
   }
 
+  // 收到一条完整消息，则回调onStringMessage
   void onStringMessage(const TcpConnectionPtr&,
                        const string& message,
                        Timestamp)
@@ -67,11 +71,13 @@ class ChatServer : boost::noncopyable
 
   typedef std::set<TcpConnectionPtr> ConnectionList;
   EventLoop* loop_;
-  TcpServer server_;
+  TcpServer server_;//Tcp服务器
   LengthHeaderCodec codec_;         // 消息编解码
-  ConnectionList connections_;      // 连接列表
+  ConnectionList connections_;      // 连接列表，因为有可能有多个客户端登录服务器，目的：遍历连接列表，向
+                                    // 已连接的客户端转发消息
 };
 
+// 单线程
 int main(int argc, char* argv[])
 {
   LOG_INFO << "pid = " << getpid();
@@ -86,7 +92,7 @@ int main(int argc, char* argv[])
   }
   else
   {
-    printf("Usage: %s port\n", argv[0]);
+    printf("Usage: %s port\n", argv[0]);//端口号
   }
 }
 

@@ -48,6 +48,7 @@ class ChatServer : boost::noncopyable
              << conn->peerAddress().toIpPort() << " is "
              << (conn->connected() ? "UP" : "DOWN");
 
+    // 因为每一个线程都有一个线程实例connections_.instance()，所以不用锁来保护
     if (conn->connected())
     {
       connections_.instance().insert(conn);
@@ -57,7 +58,16 @@ class ChatServer : boost::noncopyable
       connections_.instance().erase(conn);
     }
   }
+/*
+以前的所有方案：
+C1——> S hello T1 线程 来装啊消息给所有的客户端
 
+现在的方案：假设服务端的有4个线程
+C1——> S hello T1 线程转发消息给C1，T12线程转发消息给C2，
+              T3线程转发消息给C3，T4 线程转发消息给C4
+              T1线程转发消息给C5，T2 线程转发消息给C6，
+
+*/
   void onStringMessage(const TcpConnectionPtr&,
                        const string& message,
                        Timestamp)
@@ -65,8 +75,10 @@ class ChatServer : boost::noncopyable
     EventLoop::Functor f = boost::bind(&ChatServer::distributeMessage, this, message);
     LOG_DEBUG;
 
+    // 这意味着这个锁所锁定的区域并没有去转发消息，就可以打打的去提高并发，并不需要转发完毕，另外一个线程才进入到onStringMessage()
+    // 大大提高并发
     MutexLockGuard lock(mutex_);
-    // 转发消息给所有客户端，高效转发（多线程来转发）
+    // 转发消息给所有客户端，高效转发（多线程来转发），下面的代码执行速度很快，锁竞争很小
     for (std::set<EventLoop*>::iterator it = loops_.begin();
         it != loops_.end();
         ++it)
@@ -74,7 +86,8 @@ class ChatServer : boost::noncopyable
       // 1、让对应的IO线程来执行distributeMessage
 	  // 2、distributeMessage放到IO线程队列中执行，因此，这里的mutex_锁竞争大大减小
 	  // 3、distributeMessage不受mutex_保护
-      (*it)->queueInLoop(f);
+      (*it)->queueInLoop(f);//(*it)就是从EventLoop列表中取出的EventLoop对象
+                            // 加入到队列执行，立刻执行会增大锁占用的时间，降低并发度
     }
     LOG_DEBUG;
   }
@@ -94,13 +107,14 @@ class ChatServer : boost::noncopyable
     LOG_DEBUG << "end";
   }
 
+  // IO线程运行之前先回调threadInit()
   void threadInit(EventLoop* loop)
   {
     assert(connections_.pointer() == NULL);
     connections_.instance();
     assert(connections_.pointer() != NULL);
     MutexLockGuard lock(mutex_);
-    loops_.insert(loop);
+    loops_.insert(loop);//将IO线程所对应的EventLoop对象插入到loops_列表
   }
 
   EventLoop* loop_;
